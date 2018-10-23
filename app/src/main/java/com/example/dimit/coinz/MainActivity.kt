@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        Mapbox.getInstance(this,"pk.eyJ1IjoiZGltaXRyaS1wb2xsYXJkIiwiYSI6ImNqbjNleG5rNDAwdHgzcG9jeTh6Zng0bzkifQ.rU8jvg7GZfT3CdwL37djlA")
+        Mapbox.getInstance(this,getString(R.string.access_token))
         mapView = findViewById(R.id.mapboxMapView)
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync(this)
@@ -142,6 +142,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             enableLocation()
         } else {
             // Open a dialogue with the user
+            System.out.println("This app requires permission to access your location to proceed.")
         }
     }
 
