@@ -1,11 +1,13 @@
 package com.example.dimit.coinz
 
 import android.location.Location
+import android.os.AsyncTask
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -22,6 +24,9 @@ import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
@@ -34,6 +39,77 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private lateinit var permissionsManager : PermissionsManager
     private lateinit var locationEngine : LocationEngine
     private lateinit var locationLayerPlugin : LocationLayerPlugin
+
+    interface DownloadCompleteListener {
+        fun downloadComplete(result: String)
+    }
+
+    object DownloadCompleteRunner : DownloadCompleteListener {
+        var result : String? = null
+        override fun downloadComplete(result: String) {
+            this.result = result
+        }
+    }
+
+    class DownloadFileTask(private val caller : DownloadCompleteListener) :
+            AsyncTask<String, Void, String>() {
+
+        override fun doInBackground(vararg urls: String): String = try {
+            loadFileFromNetwork(urls[0])
+        } catch (e: IOException) {
+            "Unable to load content. Check your network connection"
+        }
+
+        private fun loadFileFromNetwork(urlString: String): String {
+            val stream : InputStream = downloadUrl(urlString)
+            // Read input from stream, build result as a string
+            val result : String = readStream(stream,500)!!
+            return result
+        }
+
+        /**
+         * Converts the contents of an InputStream to a String.
+         * Taken from: https://developer.android.com/training/basics/network-ops/connecting
+         */
+        @Throws(IOException::class, UnsupportedEncodingException::class)
+        fun readStream(stream: InputStream, maxReadSize: Int): String? {
+            val reader: Reader? = InputStreamReader(stream, "UTF-8")
+            val rawBuffer = CharArray(maxReadSize)
+            val buffer = StringBuffer()
+            var readSize: Int = reader?.read(rawBuffer) ?: -1
+            var maxReadBytes = maxReadSize
+            while (readSize != -1 && maxReadBytes > 0) {
+                if (readSize > maxReadBytes) {
+                    readSize = maxReadBytes
+                }
+                buffer.append(rawBuffer, 0, readSize)
+                maxReadBytes -= readSize
+                readSize = reader?.read(rawBuffer) ?: -1
+            }
+            return buffer.toString()
+        }
+
+        // Given a string representation of a URL, sets up a connection and gets an input stream.
+        @Throws(IOException::class)
+        private fun downloadUrl(urlString: String): InputStream {
+            val url = URL(urlString)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.readTimeout = 10000 // milliseconds
+            conn.connectTimeout = 15000 // milliseconds
+            conn.requestMethod = "GET"
+            conn.doInput = true
+            conn.connect() // Starts the query
+            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
+                throw IOException("HTTP error code: ${conn.responseCode}")
+            }
+            return conn.inputStream
+        }
+
+        override fun onPostExecute(result: String) {
+            super.onPostExecute(result)
+            caller.downloadComplete(result)
+        }
+    } // end class DownloadFileTask
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,6 +210,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                                      MutableList<String>?) {
         Log.d(tag, "Permissions: $permissionsToExplain")
         // Present popup message or dialog
+        Toast.makeText(this@MainActivity,"This app requires permission to access your " +
+                "location to proceed.", Toast.LENGTH_LONG).show()
     }
 
     override fun onPermissionResult(granted: Boolean) {
@@ -142,13 +220,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             enableLocation()
         } else {
             // Open a dialogue with the user
-            System.out.println("This app requires permission to access your location to proceed.")
+            Toast.makeText(this@MainActivity,"This app requires permission to access your " +
+                    "location to proceed.", Toast.LENGTH_LONG).show()
         }
-    }
-
-    public override fun onStart() {
-        super.onStart()
-        mapView?.onStart()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -164,6 +238,43 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         return when (item.itemId) {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    public override fun onStart() {
+        super.onStart()
+        mapView?.onStart()
+    }
+
+    public override fun onResume() {
+        super.onResume()
+        mapView?.onResume()
+    }
+
+    public override fun onPause() {
+        super.onPause()
+        mapView?.onPause()
+    }
+
+    public override fun onStop() {
+        super.onStop()
+        mapView?.onStop()
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        mapView?.onLowMemory()
+    }
+
+    public override fun onDestroy() {
+        super.onDestroy()
+        mapView?.onDestroy()
+    }
+
+    public override fun onSaveInstanceState(outState: Bundle?) {
+        super.onSaveInstanceState(outState)
+        if (outState != null){
+            mapView?.onSaveInstanceState(outState)
         }
     }
 }
