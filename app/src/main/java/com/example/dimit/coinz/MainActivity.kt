@@ -1,7 +1,7 @@
 package com.example.dimit.coinz
 
+import android.content.Context
 import android.location.Location
-import android.os.AsyncTask
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -14,6 +14,7 @@ import com.mapbox.android.core.location.LocationEnginePriority
 import com.mapbox.android.core.location.LocationEngineProvider
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
+import com.mapbox.geojson.FeatureCollection
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -24,9 +25,8 @@ import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode
 import kotlinx.android.synthetic.main.activity_main.*
-import java.io.*
-import java.net.HttpURLConnection
-import java.net.URL
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
@@ -39,77 +39,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private lateinit var permissionsManager : PermissionsManager
     private lateinit var locationEngine : LocationEngine
     private lateinit var locationLayerPlugin : LocationLayerPlugin
-
-    interface DownloadCompleteListener {
-        fun downloadComplete(result: String)
-    }
-
-    object DownloadCompleteRunner : DownloadCompleteListener {
-        var result : String? = null
-        override fun downloadComplete(result: String) {
-            this.result = result
-        }
-    }
-
-    class DownloadFileTask(private val caller : DownloadCompleteListener) :
-            AsyncTask<String, Void, String>() {
-
-        override fun doInBackground(vararg urls: String): String = try {
-            loadFileFromNetwork(urls[0])
-        } catch (e: IOException) {
-            "Unable to load content. Check your network connection"
-        }
-
-        private fun loadFileFromNetwork(urlString: String): String {
-            val stream : InputStream = downloadUrl(urlString)
-            // Read input from stream, build result as a string
-            val result : String = readStream(stream,500)!!
-            return result
-        }
-
-        /**
-         * Converts the contents of an InputStream to a String.
-         * Taken from: https://developer.android.com/training/basics/network-ops/connecting
-         */
-        @Throws(IOException::class, UnsupportedEncodingException::class)
-        fun readStream(stream: InputStream, maxReadSize: Int): String? {
-            val reader: Reader? = InputStreamReader(stream, "UTF-8")
-            val rawBuffer = CharArray(maxReadSize)
-            val buffer = StringBuffer()
-            var readSize: Int = reader?.read(rawBuffer) ?: -1
-            var maxReadBytes = maxReadSize
-            while (readSize != -1 && maxReadBytes > 0) {
-                if (readSize > maxReadBytes) {
-                    readSize = maxReadBytes
-                }
-                buffer.append(rawBuffer, 0, readSize)
-                maxReadBytes -= readSize
-                readSize = reader?.read(rawBuffer) ?: -1
-            }
-            return buffer.toString()
-        }
-
-        // Given a string representation of a URL, sets up a connection and gets an input stream.
-        @Throws(IOException::class)
-        private fun downloadUrl(urlString: String): InputStream {
-            val url = URL(urlString)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.readTimeout = 10000 // milliseconds
-            conn.connectTimeout = 15000 // milliseconds
-            conn.requestMethod = "GET"
-            conn.doInput = true
-            conn.connect() // Starts the query
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                throw IOException("HTTP error code: ${conn.responseCode}")
-            }
-            return conn.inputStream
-        }
-
-        override fun onPostExecute(result: String) {
-            super.onPostExecute(result)
-            caller.downloadComplete(result)
-        }
-    } // end class DownloadFileTask
+    private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
+    private var downloadDate = "" // Format: YYYY/MM/DD
+    private val preferencesFile = "MyPrefsFile" // for storing preferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,6 +69,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.uiSettings?.isZoomControlsEnabled = true
             // Make location information available
             enableLocation()
+            downloadMap()
         }
     }
 
@@ -149,6 +82,20 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             Log.d(tag, "Permissions are not granted")
             permissionsManager = PermissionsManager(this)
             permissionsManager.requestLocationPermissions(this)
+        }
+    }
+
+    private fun downloadMap(){
+        val current = LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        val currentFormatted = current.substring(0,4)+"/"+ current.substring(4,6)+"/"+ current.substring(6)
+        if(downloadDate != currentFormatted){
+            downloadDate = currentFormatted
+            val dailymap  = "$mapUrl$downloadDate/coinzmap.geojson"
+            val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
+            val geoJsonData = myAsyncTask.execute(dailymap).get()
+            //map?.addSource()
+            val fc= FeatureCollection.fromJson(geoJsonData).features()
+            //fc?.forEach {}
         }
     }
 
@@ -244,6 +191,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStart() {
         super.onStart()
         mapView?.onStart()
+
+        // Restore preferences
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // use ”” as the default value (this might be the first time the app is run)
+        downloadDate = settings.getString("lastDownloadDate", "")!!
+        // Write a message to ”logcat” (for debugging purposes)
+        Log.d(tag, "[onStart] Recalled lastDownloadDate is ’$downloadDate’")
     }
 
     public override fun onResume() {
@@ -259,6 +213,15 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStop() {
         super.onStop()
         mapView?.onStop()
+
+        Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
+        // All objects are from android.context.Context
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // We need an Editor object to make preference changes.
+        val editor = settings.edit()
+        editor.putString("lastDownloadDate", downloadDate)
+        // Apply the edits!
+        editor.apply()
     }
 
     override fun onLowMemory() {
