@@ -14,8 +14,11 @@ import com.mapbox.android.core.location.LocationEnginePriority
 import com.mapbox.android.core.location.LocationEngineProvider
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
+import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
+import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.Mapbox
+import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.maps.MapView
@@ -24,6 +27,7 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
 import kotlinx.android.synthetic.main.activity_main.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -41,6 +45,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private lateinit var locationLayerPlugin : LocationLayerPlugin
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
+    private var dailyFcData = "" //JsonData that was downloaded for the day
     private val preferencesFile = "MyPrefsFile" // for storing preferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,10 +97,23 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             downloadDate = currentFormatted
             val dailymap  = "$mapUrl$downloadDate/coinzmap.geojson"
             val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
-            val geoJsonData = myAsyncTask.execute(dailymap).get()
-            //map?.addSource()
-            val fc= FeatureCollection.fromJson(geoJsonData).features()
-            //fc?.forEach {}
+            dailyFcData = myAsyncTask.execute(dailymap).get()
+            map?.addSource(GeoJsonSource("geojson",dailyFcData))
+            val fc = FeatureCollection.fromJson(dailyFcData).features()
+            drawCoins(fc)
+        } else {
+            drawCoins(FeatureCollection.fromJson(dailyFcData).features())
+        }
+    }
+
+    private fun drawCoins(fc : MutableList<Feature>?){
+        fc?.forEach{
+            val coinCoord = it.geometry() as Point
+            val coinPos = LatLng(coinCoord.latitude(),coinCoord.longitude())
+            val coinTitle = it.getProperty("currency").toString()
+            val coinSnippet = it.getProperty("marker-symbol").toString()
+            map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
+                    .position(coinPos))
         }
     }
 
@@ -196,8 +214,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
+        dailyFcData = settings.getString("DailyCoinList","")!!
         // Write a message to ”logcat” (for debugging purposes)
         Log.d(tag, "[onStart] Recalled lastDownloadDate is ’$downloadDate’")
+        Log.d(tag, "[onStart] Recalled Daily Coin list is ’$dailyFcData’")
     }
 
     public override fun onResume() {
@@ -215,11 +235,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         mapView?.onStop()
 
         Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
+        Log.d(tag, "[onStop] Storing Daily Coin list of $dailyFcData")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
+        editor.putString("DailyCoinList",dailyFcData)
         // Apply the edits!
         editor.apply()
     }
