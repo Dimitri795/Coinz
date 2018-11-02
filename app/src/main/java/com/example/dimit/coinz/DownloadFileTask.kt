@@ -53,4 +53,4 @@ class DownloadFileTask(private val caller : DownloadCompleteListener) :
         super.onPostExecute(result)
         caller.downloadComplete(result)
     }
-} // end class DownloadFileTask
+}

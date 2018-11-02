@@ -1,6 +1,7 @@
 package com.example.dimit.coinz
 
 import android.content.Context
+import android.content.Intent
 import android.location.Location
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -17,6 +18,7 @@ import com.mapbox.android.core.permissions.PermissionsManager
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.Point
+import com.google.firebase.auth.FirebaseAuth
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
@@ -38,7 +40,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private val tag = "MainActivity"
     private var mapView: MapView? = null
     private var map: MapboxMap? = null
-
+    private var mAuth : FirebaseAuth? = null
     private lateinit var originLocation : Location
     private lateinit var permissionsManager : PermissionsManager
     private lateinit var locationEngine : LocationEngine
@@ -50,6 +52,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mAuth = FirebaseAuth.getInstance()
+        if(mAuth?.currentUser == null){
+            startActivity(Intent(this@MainActivity,LoginActivity::class.java))
+        }
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
