@@ -6,4 +6,5 @@
     <string name="sign_in">sign in</string>
     <string name="create_account">create account</string>
     <string name="password">password</string>
+    <string name="sign_out">Sign out</string>
 </resources>

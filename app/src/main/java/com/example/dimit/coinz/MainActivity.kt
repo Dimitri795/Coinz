@@ -2,13 +2,23 @@ package com.example.dimit.coinz
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Bundle
+import android.support.annotation.DrawableRes
+import android.support.v4.content.ContextCompat
+import android.support.v4.content.res.ResourcesCompat
+import android.support.v4.graphics.drawable.DrawableCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
+import com.example.dimit.coinz.R.string.sign_out
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -20,6 +30,8 @@ import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.Point
 import com.google.firebase.auth.FirebaseAuth
 import com.mapbox.mapboxsdk.Mapbox
+import com.mapbox.mapboxsdk.annotations.Icon
+import com.mapbox.mapboxsdk.annotations.IconFactory
 import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -113,15 +125,42 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     private fun drawCoins(fc : MutableList<Feature>?){
-        fc?.forEach{
+        fc?.forEach {
             val coinCoord = it.geometry() as Point
-            val coinPos = LatLng(coinCoord.latitude(),coinCoord.longitude())
+            val coinPos = LatLng(coinCoord.latitude(), coinCoord.longitude())
+            val coinColour = it.getProperty("marker-color").toString()
             val coinTitle = it.getProperty("currency").toString()
             val coinSnippet = it.getProperty("marker-symbol").toString()
+            //setting icon based on colour
+            //var myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.blue_marker)
+            /*when (coinColour) {
+                "#0000ff" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.blue_marker)
+                "#ffdf00" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yellow_marker)
+                "#008000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.green_marker)
+                "#ff0000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.red_marker)
+            }*/
             map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
                     .position(coinPos))
+            /*if (coinColour != "#ff0000") {
+                map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
+                        .icon(myIcon).position(coinPos))
+            } else {
+                map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
+                        .position(coinPos))
+            }*/
         }
     }
+
+   /* private fun drawableToIcon(context: Context,drawableId : Int,colour :String): Icon {
+        val vectorDrawable = ResourcesCompat.getDrawable(context.resources,drawableId,context.theme)!!
+        val bitmap = Bitmap.createBitmap(vectorDrawable.intrinsicWidth,
+                     vectorDrawable.intrinsicHeight,Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        vectorDrawable.setBounds(0,0,canvas.width,canvas.height)
+        DrawableCompat.setTint(vectorDrawable,Color.parseColor(colour))
+        vectorDrawable.draw(canvas)
+        return IconFactory.getInstance(context).fromBitmap(bitmap)
+    }*/
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationEngine() {
@@ -208,6 +247,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.action_settings -> true
+            R.id.sign_out -> {
+                mAuth?.signOut()
+                Toast.makeText(this@MainActivity,"Sign out successful",Toast.LENGTH_LONG).show()
+                startActivity(Intent(this@MainActivity,LoginActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

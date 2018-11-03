@@ -36,6 +36,7 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "createUserWithEmailAndPassword:success")
+                        Toast.makeText(this@LoginActivity,"Welcome To Coinz",Toast.LENGTH_LONG).show()
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
@@ -53,6 +54,7 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "signInUserWithEmailAndPassword:success")
+                        Toast.makeText(this@LoginActivity,"Welcome To Coinz",Toast.LENGTH_LONG).show()
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
