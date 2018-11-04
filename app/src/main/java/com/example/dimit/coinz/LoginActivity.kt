@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.android.synthetic.main.activity_login.*
 
 //Implementation adapted from https://github.com/firebase/quickstart-android and slides
@@ -37,12 +38,17 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                         // Sign in success, update UI with user info
                         Log.d(tag, "createUserWithEmailAndPassword:success")
                         Toast.makeText(this@LoginActivity,"Welcome To Coinz",Toast.LENGTH_LONG).show()
+                        //Experimenting With allowing users to have displaynames
+                        /*val user = mAuth?.currentUser
+                        val profileUpdates = UserProfileChangeRequest.Builder()
+                                .setDisplayName("bob").build()
+                        user?.updateProfile(profileUpdates)*/
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
                         Log.w(tag, "createUserWithEmailAndPassword:failure", task.exception)
                         Toast.makeText(this@LoginActivity, "Authentication failed.",
-                                Toast.LENGTH_SHORT).show()
+                                    Toast.LENGTH_SHORT).show()
                         updateUI(null)
                     }
                 }
@@ -54,7 +60,7 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "signInUserWithEmailAndPassword:success")
-                        Toast.makeText(this@LoginActivity,"Welcome To Coinz",Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@LoginActivity,"Welcome Back To Coinz",Toast.LENGTH_LONG).show()
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user

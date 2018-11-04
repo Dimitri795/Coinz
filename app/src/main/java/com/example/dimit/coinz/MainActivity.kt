@@ -7,12 +7,14 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
 import android.support.annotation.DrawableRes
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.res.ResourcesCompat
 import android.support.v4.graphics.drawable.DrawableCompat
 import android.support.v7.app.AppCompatActivity
+import android.util.JsonToken
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -29,9 +31,14 @@ import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.Point
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.annotations.Icon
 import com.mapbox.mapboxsdk.annotations.IconFactory
+import com.mapbox.mapboxsdk.annotations.Marker
 import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -61,6 +68,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private var downloadDate = "" // Format: YYYY/MM/DD
     private var dailyFcData = "" //JsonData that was downloaded for the day
     private val preferencesFile = "MyPrefsFile" // for storing preferences
+    private var fc : MutableList<Feature>? = null //daily feature collection list of features
+    private var wallet : MutableList<Feature>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,24 +122,22 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         val currentFormatted = current.substring(0,4)+"/"+ current.substring(4,6)+"/"+ current.substring(6)
         if(downloadDate != currentFormatted){
             downloadDate = currentFormatted
-            val dailymap  = "$mapUrl$downloadDate/coinzmap.geojson"
+            val dailyMap  = "$mapUrl$downloadDate/coinzmap.geojson"
             val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
-            dailyFcData = myAsyncTask.execute(dailymap).get()
+            dailyFcData = myAsyncTask.execute(dailyMap).get()
             map?.addSource(GeoJsonSource("geojson",dailyFcData))
-            val fc = FeatureCollection.fromJson(dailyFcData).features()
-            drawCoins(fc)
-        } else {
-            drawCoins(FeatureCollection.fromJson(dailyFcData).features())
         }
+        fc = FeatureCollection.fromJson(dailyFcData).features()
+        drawCoins(fc)
     }
 
     private fun drawCoins(fc : MutableList<Feature>?){
         fc?.forEach {
             val coinCoord = it.geometry() as Point
             val coinPos = LatLng(coinCoord.latitude(), coinCoord.longitude())
-            val coinColour = it.getProperty("marker-color").toString()
-            val coinTitle = it.getProperty("currency").toString()
-            val coinSnippet = it.getProperty("marker-symbol").toString()
+            val coinColour = it.getStringProperty("marker-color").toString()
+            val coinTitle = it.getStringProperty("currency")
+            val coinSnippet = it.getStringProperty("marker-symbol")
             //setting icon based on colour
             //var myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.blue_marker)
             /*when (coinColour) {
@@ -139,15 +146,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 "#008000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.green_marker)
                 "#ff0000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.red_marker)
             }*/
-            map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
-                    .position(coinPos))
-            /*if (coinColour != "#ff0000") {
-                map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
-                        .icon(myIcon).position(coinPos))
-            } else {
-                map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet)
-                        .position(coinPos))
-            }*/
+            map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet).position(coinPos))
         }
     }
 
@@ -207,6 +206,17 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         } else {
             originLocation = location
             setCameraPosition(originLocation)
+            fc?.forEach{
+                val coinCoord = it.geometry() as Point
+                val coinLoc = Location(LocationManager.GPS_PROVIDER).apply {
+                    latitude = coinCoord.latitude()
+                    longitude = coinCoord.longitude()
+                }
+                if(originLocation.distanceTo(coinLoc)<= 25.0){
+                    wallet?.add(it)
+                    Toast.makeText(this@MainActivity,"Coin Collected ${it.getStringProperty("id")}",Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
@@ -265,7 +275,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
-        dailyFcData = settings.getString("DailyCoinList","")!!
+        dailyFcData = settings.getString("DailyCoinData","")!!
         // Write a message to ”logcat” (for debugging purposes)
         Log.d(tag, "[onStart] Recalled lastDownloadDate is ’$downloadDate’")
         Log.d(tag, "[onStart] Recalled Daily Coin list is ’$dailyFcData’")
@@ -286,13 +296,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         mapView?.onStop()
 
         Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
-        Log.d(tag, "[onStop] Storing Daily Coin list of $dailyFcData")
+        Log.d(tag, "[onStop] Storing Daily Coin Data of $dailyFcData")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
-        editor.putString("DailyCoinList",dailyFcData)
+        editor.putString("DailyCoinData", dailyFcData)
         // Apply the edits!
         editor.apply()
     }
