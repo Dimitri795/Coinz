@@ -9,6 +9,7 @@ import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_login.*
 
 //Implementation adapted from https://github.com/firebase/quickstart-android and slides
@@ -16,11 +17,13 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
 
     private val tag = "LoginActivity"
     private var mAuth : FirebaseAuth? = null
+    private var db : FirebaseFirestore? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
         mAuth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
 
         emailSignInButton.setOnClickListener(this)
         emailCreateAccountButton.setOnClickListener(this)
@@ -37,18 +40,25 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "createUserWithEmailAndPassword:success")
-                        Toast.makeText(this@LoginActivity,"Welcome To Coinz",Toast.LENGTH_LONG).show()
+                        makeToast("Welcome To Coinz")
                         //Experimenting With allowing users to have displaynames
                         /*val user = mAuth?.currentUser
                         val profileUpdates = UserProfileChangeRequest.Builder()
                                 .setDisplayName("bob").build()
                         user?.updateProfile(profileUpdates)*/
+                        val user = HashMap<String,String>()
+                        user["UserName"] = fieldEmail.text.toString().substringBefore('@')
+                        user["Email"] = fieldEmail.text.toString()
+                        db?.collection("Users")?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
+                            Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid}")
+                        }?.addOnFailureListener {
+                            Log.d(tag,"Error adding document",it)
+                        }
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
                         Log.w(tag, "createUserWithEmailAndPassword:failure", task.exception)
-                        Toast.makeText(this@LoginActivity, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show()
+                        makeToast("Authentication failed.")
                         updateUI(null)
                     }
                 }
@@ -60,13 +70,12 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "signInUserWithEmailAndPassword:success")
-                        Toast.makeText(this@LoginActivity,"Welcome Back To Coinz",Toast.LENGTH_LONG).show()
+                        makeToast("Welcome Back To Coinz")
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
                         Log.w(tag, "signInUserWithEmailAndPassword:failure", task.exception)
-                        Toast.makeText(this@LoginActivity, "Authentication failed.",
-                                Toast.LENGTH_SHORT).show()
+                        makeToast("Authentication failed.")
                         updateUI(null)
                     }
                 }
@@ -87,5 +96,9 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
             R.id.emailCreateAccountButton -> createAccount(fieldEmail.text.toString(), fieldPassword.text.toString())
             R.id.emailSignInButton -> signIn(fieldEmail.text.toString(), fieldPassword.text.toString())
         }
+    }
+
+    private fun makeToast(msg : String){
+        Toast.makeText(this@LoginActivity,msg,Toast.LENGTH_LONG).show()
     }
 }
