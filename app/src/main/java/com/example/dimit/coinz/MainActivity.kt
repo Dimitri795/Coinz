@@ -64,6 +64,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private var fc : MutableList<Feature>? = null //daily feature collection list of features
     private var markers = HashMap<String, Marker?>()
     private var mapDrawn = false
+    private var purse : MutableList<String>? = mutableListOf()
+    private var newfc : MutableList<Feature>? = null
 
     companion object {
         private const val collection_key ="Users"
@@ -135,11 +137,17 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.addSource(GeoJsonSource("geojson",dailyFcData))
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
+        updateMap(fc)
+    }
+
+    private fun fillPurse(){
         wallet?.document(personalWalletDoc)?.get()?.addOnCompleteListener { task ->
             if(task.isComplete){
                 val doc = task.result
                 if(doc?.exists()!!){
                     Log.d(tag, "DocumentSnapshot data: " + doc.data)
+                    purse?.addAll(doc.data!!.keys)
+
                 }else{
                     Log.d(tag,"No such document")
                 }
@@ -147,39 +155,73 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 Log.d(tag,"get failed with",task.exception)
             }
         }
-        //val newfc = fc?.filterNot{containsKey(it.getStringProperty("id"))!! } as MutableList<Feature>
-        drawCoins(fc)
     }
 
-    private fun drawCoins(fc : MutableList<Feature>?){
+    private fun updateMap(fc : MutableList<Feature>?){
+        fillPurse()
+        newfc = fc?.filterNot{purse?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
         fc?.forEach {
             val coinCoord = it.geometry() as Point
             val coinPos = LatLng(coinCoord.latitude(), coinCoord.longitude())
             val coinColour = it.getStringProperty("marker-color").toString()
-            val coinSnippet = it.getStringProperty("currency")
-            val coinTitle = it.getStringProperty("marker-symbol")
+            val coinTitle = it.getStringProperty("currency")
+            val coinSymbol = it.getStringProperty("marker-symbol")
             //setting icon based on colour
-            lateinit var myIcon : Icon
-            /*when(coinTitle){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker1)
-                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker2)
-                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker3)
-                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker4)
-                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker5)
-                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker6)
-                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker7)
-                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker8)
-                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.marker9)
-            }*/
-            when(coinColour){
-                "#ff0000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.red_marker)
-                "#0000ff" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.blue_marker)
-                "#ffdf00" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yellow_marker)
-                "#008000" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.green_marker)
-            }
-            markers[it.getStringProperty("id")] = map?.addMarker(MarkerOptions().title(coinTitle).snippet(coinSnippet).icon(myIcon).position(coinPos))
+            val myIcon = makeIcon(coinColour,coinSymbol)
+            markers[it.getStringProperty("id")] = map?.addMarker(MarkerOptions().title(coinTitle).icon(myIcon).position(coinPos))
         }
         mapDrawn = true
+    }
+
+    private fun makeIcon(colour: String, symbol: String): Icon{
+        lateinit var myIcon : Icon
+        when(colour){
+            "#ff0000" -> when(symbol){
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker1)
+                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker2)
+                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker3)
+                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker4)
+                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker5)
+                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker6)
+                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker7)
+                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker8)
+                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker9)
+            }
+            "#0000ff" -> when(symbol){
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker1)
+                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker2)
+                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker3)
+                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker4)
+                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker5)
+                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker6)
+                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker7)
+                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker8)
+                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker9)
+            }
+            "#ffdf00" -> when(symbol){
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker1)
+                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker2)
+                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker3)
+                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker4)
+                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker5)
+                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker6)
+                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker7)
+                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker8)
+                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker9)
+            }
+            "#008000" -> when(symbol){
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker1)
+                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker2)
+                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker3)
+                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker4)
+                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker5)
+                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker6)
+                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker7)
+                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker8)
+                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker9)
+            }
+        }
+        return myIcon
     }
 
     @SuppressWarnings("MissingPermission")
@@ -243,14 +285,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                     val data = HashMap<String,String>()
                     data[it.getStringProperty("id")] = it.toJson()
                     wallet?.document(personalWalletDoc)?.set(data as Map<String, Any>, SetOptions.merge())
-                    val mark = markers[it.getStringProperty("id").toString()]
-                    if (mark != null) {
-                        map?.removeMarker(mark)
-                    }
                     makeToast("Coin Collected ${it.getStringProperty("id")}")
                 }
             }
         }
+        updateMap(fc)
     }
 
     @SuppressWarnings("MissingPermission")

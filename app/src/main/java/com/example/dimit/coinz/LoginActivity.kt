@@ -13,7 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_login.*
 
 //Implementation adapted from https://github.com/firebase/quickstart-android and slides
-class LoginActivity : AppCompatActivity(),View.OnClickListener {
+class LoginActivity : AppCompatActivity() {
 
     private val tag = "LoginActivity"
     private var mAuth : FirebaseAuth? = null
@@ -25,8 +25,8 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
         mAuth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        emailSignInButton.setOnClickListener(this)
-        emailCreateAccountButton.setOnClickListener(this)
+        emailSignInButton.setOnClickListener { signIn(fieldEmail.text.toString(), fieldPassword.text.toString()) }
+        emailCreateAccountButton.setOnClickListener { createAccount(fieldEmail.text.toString(), fieldPassword.text.toString()) }
     }
 
     public override fun onStart() {
@@ -85,16 +85,9 @@ class LoginActivity : AppCompatActivity(),View.OnClickListener {
         if (user != null) {
            startActivity(Intent(this@LoginActivity,MainActivity::class.java))
         } else {
+            //do later
             emailPasswordButtons.visibility = View.VISIBLE
             emailPasswordFields.visibility = View.VISIBLE
-        }
-    }
-
-    override fun onClick(v: View) {
-        val i = v.id
-        when (i) {
-            R.id.emailCreateAccountButton -> createAccount(fieldEmail.text.toString(), fieldPassword.text.toString())
-            R.id.emailSignInButton -> signIn(fieldEmail.text.toString(), fieldPassword.text.toString())
         }
     }
 
