@@ -177,6 +177,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         lateinit var myIcon : Icon
         when(colour){
             "#ff0000" -> when(symbol){
+                "0" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker0)
                 "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker1)
                 "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker2)
                 "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker3)
@@ -188,7 +189,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker9)
             }
             "#0000ff" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker1)
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker0)
                 "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker2)
                 "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker3)
                 "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker4)
@@ -199,7 +200,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker9)
             }
             "#ffdf00" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker1)
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker0)
                 "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker2)
                 "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker3)
                 "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker4)
@@ -210,7 +211,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker9)
             }
             "#008000" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker1)
+                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker0)
                 "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker2)
                 "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker3)
                 "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker4)
