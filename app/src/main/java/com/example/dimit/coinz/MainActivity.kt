@@ -11,8 +11,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.*
-import com.google.gson.GsonBuilder
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -40,6 +40,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
@@ -49,7 +50,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private var map: MapboxMap? = null
     private var mAuth : FirebaseAuth? = null
     private var db : FirebaseFirestore? = null
-    private var wallet : CollectionReference? = null
 
     private lateinit var originLocation : Location
     private lateinit var permissionsManager : PermissionsManager
@@ -59,20 +59,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
     private var dailyFcData = "" //JsonData that was downloaded for the day
+    private var collected : MutableList<String>? = mutableListOf() // list of collected coins
     private val preferencesFile = "MyPrefsFile" // for storing preferences
 
     private var fc : MutableList<Feature>? = null //daily feature collection list of features
     private var markers = HashMap<String, Marker?>()
     private var mapDrawn = false
-    private var purse : MutableList<String>? = mutableListOf()
-    private var newfc : MutableList<Feature>? = null
-
-    companion object {
-        private const val collection_key ="Users"
-        private const val subcollection_key = "Wallet"
-        private const val personalWalletDoc = "Personal Wallet"
-        private const val friendWalletDoc = "Gift Wallet"
-    }
+    private var newfc : MutableList<Feature>? = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,7 +80,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         val settings = FirebaseFirestoreSettings.Builder()
                 .setTimestampsInSnapshotsEnabled(true).build()
         db?.firestoreSettings = settings
-        wallet = db?.collection(collection_key)?.document(mAuth?.uid!!)?.collection(subcollection_key)
 
         Mapbox.getInstance(this,getString(R.string.access_token))
         mapView = findViewById(R.id.mapboxMapView)
@@ -135,92 +127,43 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
             dailyFcData = myAsyncTask.execute(dailyMap).get()
             map?.addSource(GeoJsonSource("geojson",dailyFcData))
+            collected = mutableListOf()
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
-        updateMap(fc)
+        addMarkers(fc)
     }
 
-    private fun fillPurse(){
-        wallet?.document(personalWalletDoc)?.get()?.addOnCompleteListener { task ->
-            if(task.isComplete){
-                val doc = task.result
-                if(doc?.exists()!!){
-                    Log.d(tag, "DocumentSnapshot data: " + doc.data)
-                    purse?.addAll(doc.data!!.keys)
-
-                }else{
-                    Log.d(tag,"No such document")
-                }
-            } else{
-                Log.d(tag,"get failed with",task.exception)
-            }
-        }
-    }
-
-    private fun updateMap(fc : MutableList<Feature>?){
-        fillPurse()
-        newfc = fc?.filterNot{purse?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
-        fc?.forEach {
+    private fun addMarkers(fc : MutableList<Feature>?){
+        newfc = fc?.filterNot{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
+        newfc?.forEach {
             val coinCoord = it.geometry() as Point
             val coinPos = LatLng(coinCoord.latitude(), coinCoord.longitude())
             val coinColour = it.getStringProperty("marker-color").toString()
             val coinTitle = it.getStringProperty("currency")
+            val coinVal = it.getStringProperty("value").toDouble()
             val coinSymbol = it.getStringProperty("marker-symbol")
+            // getting coin value in gold and rounded
+            val goldVal = (getGold(coinTitle)*coinVal).roundToInt().toString()
             //setting icon based on colour
-            val myIcon = makeIcon(coinColour,coinSymbol)
-            markers[it.getStringProperty("id")] = map?.addMarker(MarkerOptions().title(coinTitle).icon(myIcon).position(coinPos))
+            val mycon = makeIcon(coinColour,coinSymbol)
+            markers[it.getStringProperty("id")] = map?.addMarker(MarkerOptions().title(coinTitle).snippet("$goldVal gold")
+            .icon(mycon).position(coinPos))
         }
         mapDrawn = true
     }
 
+    private fun getGold(currency : String) : Double {
+       return JSONObject("${JSONObject(dailyFcData).get("rates")}").getDouble(currency)
+    }
+
     private fun makeIcon(colour: String, symbol: String): Icon{
         lateinit var myIcon : Icon
+        val ifact = IconFactory.getInstance(this@MainActivity)
         when(colour){
-            "#ff0000" -> when(symbol){
-                "0" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker0)
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker1)
-                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker2)
-                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker3)
-                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker4)
-                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker5)
-                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker6)
-                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker7)
-                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker8)
-                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.redmarker9)
-            }
-            "#0000ff" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker0)
-                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker2)
-                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker3)
-                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker4)
-                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker5)
-                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker6)
-                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker7)
-                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker8)
-                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.bluemarker9)
-            }
-            "#ffdf00" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker0)
-                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker2)
-                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker3)
-                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker4)
-                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker5)
-                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker6)
-                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker7)
-                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker8)
-                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.yelmarker9)
-            }
-            "#008000" -> when(symbol){
-                "1" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker0)
-                "2" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker2)
-                "3" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker3)
-                "4" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker4)
-                "5" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker5)
-                "6" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker6)
-                "7" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker7)
-                "8" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker8)
-                "9" -> myIcon = IconFactory.getInstance(this@MainActivity).fromResource(R.drawable.greenmarker9)
-            }
+            "#ff0000" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.RedMarkers).getResourceId(symbol.toInt(),R.drawable.redmarker0))
+            "#0000ff" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.BlueMarkers).getResourceId(symbol.toInt(),R.drawable.bluemarker0))
+            "#ffdf00" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.YellowMarkers).getResourceId(symbol.toInt(),R.drawable.yelmarker0))
+            "#008000" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.GreenMarkers).getResourceId(symbol.toInt(),R.drawable.greenmarker0))
         }
         return myIcon
     }
@@ -270,27 +213,27 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         } else {
             originLocation = location
             setCameraPosition(originLocation)
-            collectCoin()
+            if(mapDrawn){
+                collectCoin()
+            }
         }
     }
 
     private fun collectCoin(){
-        if(mapDrawn){
-            fc?.forEach {
-                val coinCoord = it.geometry() as Point
-                val coinLoc = Location(LocationManager.GPS_PROVIDER).apply {
-                    latitude = coinCoord.latitude()
-                    longitude = coinCoord.longitude()
-                }
-                if (originLocation.distanceTo(coinLoc) <= 25.0) {
-                    val data = HashMap<String,String>()
-                    data[it.getStringProperty("id")] = it.toJson()
-                    wallet?.document(personalWalletDoc)?.set(data as Map<String, Any>, SetOptions.merge())
-                    makeToast("Coin Collected ${it.getStringProperty("id")}")
-                }
+        newfc = fc?.filterNot{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
+        newfc?.forEach {
+            val coinCoord = it.geometry() as Point
+            val coinLoc = Location(LocationManager.GPS_PROVIDER).apply {
+                latitude = coinCoord.latitude()
+                longitude = coinCoord.longitude()
+            }
+            if (originLocation.distanceTo(coinLoc) <= 25.0) {
+                val id = it.getStringProperty("id")
+                collected?.add(id)
+                makeToast("Collected a ${it.getStringProperty("currency")} ${it.getStringProperty("marker-symbol")} coin!")
+                map?.removeMarker(markers[id]!!)
             }
         }
-        updateMap(fc)
     }
 
     @SuppressWarnings("MissingPermission")
@@ -349,8 +292,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
         dailyFcData = settings.getString("DailyCoinData","")!!
-        Log.d(tag, "[onStart] Recalled lastDownloadDate is ’$downloadDate’")
-        Log.d(tag, "[onStart] Recalled Daily Coin list is ’$dailyFcData’")
+        val collectedString = settings.getString("CollectedCoins","")!!
+        if(collectedString != ""){
+            collected = collectedString.split(delimiters = *arrayOf("#"), ignoreCase = false, limit = 0) as MutableList<String>?
+        }
+        Log.d(tag, "[onStart] Recalled lastDownloadDate is $downloadDate")
+        Log.d(tag, "[onStart] Recalled Daily Coin list is $dailyFcData")
+        Log.d(tag,"[onStart] Recalled Daily Collected list is $collected")
     }
 
     public override fun onResume() {
@@ -369,13 +317,14 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
         Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
         Log.d(tag, "[onStop] Storing Daily Coin Data of $dailyFcData")
-        //Log.d(tag,"[onStop] Storing Collected Coin List of $wallet")
+        Log.d(tag,"[onStop] Storing Collected Coin List of $collected")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
+        editor.putString("CollectedCoins", collected?.joinToString("#"))
         // Apply the edits!
         editor.apply()
     }

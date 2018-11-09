@@ -54,12 +54,31 @@
             android:text="@string/sign_in" />
 
         <Button
-                    android:id="@+id/emailCreateAccountButton"
-                    style="@style/Widget.AppCompat.Button.Colored"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/create_account" />
+            android:id="@+id/emailCreateAccountButton"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/create_account" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/SkipButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/emailPasswordButtons"
+        android:layout_marginTop="0dp"
+        android:orientation="horizontal"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <Button
+            android:id="@+id/skipButton"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Skip" />
     </LinearLayout>
 
 </RelativeLayout>

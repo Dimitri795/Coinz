@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="GreenMarkers">
+        <item>@drawable/greenmarker0</item>
+        <item>@drawable/greenmarker1</item>
+        <item>@drawable/greenmarker2</item>
+        <item>@drawable/greenmarker3</item>
+        <item>@drawable/greenmarker4</item>
+        <item>@drawable/greenmarker5</item>
+        <item>@drawable/greenmarker6</item>
+        <item>@drawable/greenmarker7</item>
+        <item>@drawable/greenmarker8</item>
+        <item>@drawable/greenmarker9</item>
+    </array>
+
+    <array name="BlueMarkers">
+        <item>@drawable/bluemarker0</item>
+        <item>@drawable/bluemarker1</item>
+        <item>@drawable/bluemarker2</item>
+        <item>@drawable/bluemarker3</item>
+        <item>@drawable/bluemarker4</item>
+        <item>@drawable/bluemarker5</item>
+        <item>@drawable/bluemarker6</item>
+        <item>@drawable/bluemarker7</item>
+        <item>@drawable/bluemarker8</item>
+        <item>@drawable/bluemarker9</item>
+    </array>
+
+    <array name="RedMarkers">
+        <item>@drawable/redmarker0</item>
+        <item>@drawable/redmarker1</item>
+        <item>@drawable/redmarker2</item>
+        <item>@drawable/redmarker3</item>
+        <item>@drawable/redmarker4</item>
+        <item>@drawable/redmarker5</item>
+        <item>@drawable/redmarker6</item>
+        <item>@drawable/redmarker7</item>
+        <item>@drawable/redmarker8</item>
+        <item>@drawable/redmarker9</item>
+    </array>
+
+    <array name="YellowMarkers">
+        <item>@drawable/yelmarker0</item>
+        <item>@drawable/yelmarker1</item>
+        <item>@drawable/yelmarker2</item>
+        <item>@drawable/yelmarker3</item>
+        <item>@drawable/yelmarker4</item>
+        <item>@drawable/yelmarker5</item>
+        <item>@drawable/yelmarker6</item>
+        <item>@drawable/yelmarker7</item>
+        <item>@drawable/yelmarker8</item>
+        <item>@drawable/yelmarker9</item>
+    </array>
+
+</resources>
