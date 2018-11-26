@@ -1,5 +1,6 @@
 package com.example.dimit.coinz
 
+import android.arch.lifecycle.Lifecycle
 import android.content.Context
 import android.content.Intent
 import android.location.Location
@@ -54,12 +55,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private lateinit var permissionsManager : PermissionsManager
     private lateinit var locationEngine : LocationEngine
     private lateinit var locationLayerPlugin : LocationLayerPlugin
+    private lateinit var locationLifecycle : Lifecycle
 
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
     private var wallet : CollectionReference? = null // firebase storage of collected coins
     private var walletListener : ListenerRegistration? = null
-    private val preferencesFile = "MyPrefsFile" // for storing preferences
+    private lateinit var preferencesFile : String // for storing preferences
 
     private var fc : MutableList<Feature>? = null //daily feature collection list of features
     private var markers = HashMap<String, Marker?>()
@@ -131,12 +133,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private fun downloadFeatures(){
         val current = LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         val currentFormatted = current.substring(0,4)+"/"+ current.substring(4,6)+"/"+ current.substring(6)
-        if(downloadDate != currentFormatted){
+        if(downloadDate != currentFormatted) {
             downloadDate = currentFormatted
-            val dailyMap  = "$mapUrl$downloadDate/coinzmap.geojson"
+            val dailyMap = "$mapUrl$downloadDate/coinzmap.geojson"
             val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
             dailyFcData = myAsyncTask.execute(dailyMap).get()
-            map?.addSource(GeoJsonSource("geojson",dailyFcData))
+            map?.addSource(GeoJsonSource("geojson", dailyFcData))
             wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
             collected?.clear()
         }
@@ -209,6 +211,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
                 }
+                locationLifecycle = lifecycle
+                locationLifecycle.addObserver(locationLayerPlugin)
             }
         }
     }
@@ -300,8 +304,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStart() {
         super.onStart()
         mapView?.onStart()
-
         // Restore preferences
+        preferencesFile = "MyPrefsFile${mAuth?.uid}"
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
@@ -314,9 +318,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 docSnap != null && docSnap.exists() -> {
                     collected?.addAll(docSnap.data!!.keys)
                     Log.d(tag,"Snapshot listen successful")
-                    val newFc = fc?.filter{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
-                    newFc?.forEach{
-                        map?.removeMarker(markers[it.getStringProperty("id")]!!)
+                    if(mapDrawn) {
+                        val newFc = fc?.filter { collected?.contains(it.getStringProperty("id"))!! } as MutableList<Feature>?
+                        newFc?.forEach {
+                            map?.removeMarker(markers[it.getStringProperty("id")]!!)
+                        }
                     }
                 }
             }
@@ -337,6 +343,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         super.onStop()
         mapView?.onStop()
         walletListener?.remove()
+        locationEngine.removeLocationEngineListener(this)
+        locationEngine.removeLocationUpdates()
         Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
         Log.d(tag, "[onStop] Storing Daily Coin Data of $dailyFcData")
         // All objects are from android.context.Context
@@ -367,6 +375,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
     // Helper function to make writing toasts faster/less wordy
     private fun makeToast(msg : String){
-        Toast.makeText(this@MainActivity,msg,Toast.LENGTH_LONG).show()
+        Toast.makeText(this@MainActivity,msg,Toast.LENGTH_SHORT).show()
     }
 }

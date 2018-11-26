@@ -30,6 +30,8 @@ class BankActivity : AppCompatActivity() {
 
     private val tag = "BankActivity"
     private var twoPane: Boolean = false // whether the activity is in two pane mode
+    private var fc : MutableList<Feature>? = null
+    private var newfc : ArrayList<Feature>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +50,8 @@ class BankActivity : AppCompatActivity() {
             // The detail container view will be present only in the large-screen layouts (res/values-w900dp).
             twoPane = true
         }
+        fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
+        newfc = fc?.filter{MainActivity.collected?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
         setupRecyclerView(Wallet)
     }
 
@@ -63,8 +67,6 @@ class BankActivity : AppCompatActivity() {
             }
 
     private fun setupRecyclerView(recyclerView: RecyclerView) {
-        val fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
-        val newfc = fc?.filter{MainActivity.collected?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
         Wallet.apply {
             layoutManager = LinearLayoutManager(this@BankActivity)
             recyclerView.adapter = SimpleItemRecyclerViewAdapter(this@BankActivity,newfc,twoPane)
