@@ -7,4 +7,6 @@
     <string name="create_account">create account</string>
     <string name="password">password</string>
     <string name="sign_out">Sign out</string>
+    <string name="title_coin_list">Wallet</string>
+    <string name="title_coin_detail">Coin Details</string>
 </resources>

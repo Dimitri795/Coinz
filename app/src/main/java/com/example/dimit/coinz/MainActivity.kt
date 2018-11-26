@@ -11,8 +11,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.*
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -58,14 +57,23 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
-    private var dailyFcData = "" //JsonData that was downloaded for the day
-    private var collected : MutableList<String>? = mutableListOf() // list of collected coins
+    private var wallet : CollectionReference? = null // firebase storage of collected coins
+    private var walletListener : ListenerRegistration? = null
     private val preferencesFile = "MyPrefsFile" // for storing preferences
 
     private var fc : MutableList<Feature>? = null //daily feature collection list of features
     private var markers = HashMap<String, Marker?>()
     private var mapDrawn = false
     private var newfc : MutableList<Feature>? = mutableListOf()
+
+    companion object {
+        private const val collection_key = "Users"
+        private const val subcollection_key = "Wallet"
+        private const val personalwalletdoc = "Personal Wallet"
+        private const val giftwallet = "Gift Wallet"
+        var dailyFcData = "" //JsonData that was downloaded for the day
+        var collected : MutableList<String>? = mutableListOf() // list of collected coins
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,18 +86,20 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         db = FirebaseFirestore.getInstance()
         // Use com.google.firebase.Timestamp objects instead of java.util.Date objects
         val settings = FirebaseFirestoreSettings.Builder()
-                .setTimestampsInSnapshotsEnabled(true).build()
+                .setTimestampsInSnapshotsEnabled(true).setPersistenceEnabled(false).build()
         db?.firestoreSettings = settings
+        if(mAuth?.currentUser != null){
+            wallet = db?.collection(collection_key)?.document(mAuth?.uid!!)?.collection(subcollection_key)
+        }
 
         Mapbox.getInstance(this,getString(R.string.access_token))
         mapView = findViewById(R.id.mapboxMapView)
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync(this)
 
-        /*fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }*/
+        fab.setOnClickListener { _->
+            startActivity(Intent(this@MainActivity,BankActivity::class.java))
+        }
     }
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
@@ -127,7 +137,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
             dailyFcData = myAsyncTask.execute(dailyMap).get()
             map?.addSource(GeoJsonSource("geojson",dailyFcData))
-            collected = mutableListOf()
+            wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
+            collected?.clear()
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
@@ -152,7 +163,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         mapDrawn = true
     }
 
-    private fun getGold(currency : String) : Double {
+    fun getGold(currency : String) : Double {
        return JSONObject("${JSONObject(dailyFcData).get("rates")}").getDouble(currency)
     }
 
@@ -230,6 +241,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             if (originLocation.distanceTo(coinLoc) <= 25.0) {
                 val id = it.getStringProperty("id")
                 collected?.add(id)
+                val data = HashMap<String,String>()
+                data[id] = it.toJson()
+                wallet?.document(personalwalletdoc)?.set(data as Map<String, Any>, SetOptions.merge())
                 makeToast("Collected a ${it.getStringProperty("currency")} ${it.getStringProperty("marker-symbol")} coin!")
                 map?.removeMarker(markers[id]!!)
             }
@@ -292,13 +306,21 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
         dailyFcData = settings.getString("DailyCoinData","")!!
-        val collectedString = settings.getString("CollectedCoins","")!!
-        if(collectedString != ""){
-            collected = collectedString.split(delimiters = *arrayOf("#"), ignoreCase = false, limit = 0) as MutableList<String>?
-        }
         Log.d(tag, "[onStart] Recalled lastDownloadDate is $downloadDate")
         Log.d(tag, "[onStart] Recalled Daily Coin list is $dailyFcData")
-        Log.d(tag,"[onStart] Recalled Daily Collected list is $collected")
+        walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener{docSnap, e ->
+            when{
+                e != null -> Log.d(tag,e.message)
+                docSnap != null && docSnap.exists() -> {
+                    collected?.addAll(docSnap.data!!.keys)
+                    Log.d(tag,"Snapshot listen successful")
+                    val newFc = fc?.filter{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
+                    newFc?.forEach{
+                        map?.removeMarker(markers[it.getStringProperty("id")]!!)
+                    }
+                }
+            }
+        }
     }
 
     public override fun onResume() {
@@ -314,17 +336,15 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStop() {
         super.onStop()
         mapView?.onStop()
-
+        walletListener?.remove()
         Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
         Log.d(tag, "[onStop] Storing Daily Coin Data of $dailyFcData")
-        Log.d(tag,"[onStop] Storing Collected Coin List of $collected")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
-        editor.putString("CollectedCoins", collected?.joinToString("#"))
         // Apply the edits!
         editor.apply()
     }

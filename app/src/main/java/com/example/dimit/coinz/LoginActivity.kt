@@ -36,6 +36,10 @@ class LoginActivity : AppCompatActivity() {
         updateUI(mAuth?.currentUser)
     }
 
+    public override fun onStop() {
+        super.onStop()
+    }
+
     private fun createAccount(email : String,password : String){
         mAuth?.createUserWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
