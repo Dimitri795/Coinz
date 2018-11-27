@@ -306,29 +306,37 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         mapView?.onStart()
         // Restore preferences
         preferencesFile = "MyPrefsFile${mAuth?.uid}"
+        Log.d(tag, "Preference file is $preferencesFile")
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
         dailyFcData = settings.getString("DailyCoinData","")!!
-        Log.d(tag, "[onStart] Recalled lastDownloadDate is $downloadDate")
-        Log.d(tag, "[onStart] Recalled Daily Coin list is $dailyFcData")
+        val colcCoins = settings.getString("CollectedCoinList","")
+        if(colcCoins != ""){
+            collected = colcCoins?.split(delimiters = *arrayOf("$")) as MutableList<String>?
+        }
+        Log.d(tag, "[onStart] Recalled Last Download Date is $downloadDate")
+        Log.d(tag, "[onStart] Recalled Daily Coin list")
+        Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
         walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener{docSnap, e ->
             when{
                 e != null -> Log.d(tag,e.message)
                 docSnap != null && docSnap.exists() -> {
                     collected?.addAll(docSnap.data!!.keys)
                     Log.d(tag,"Snapshot listen successful")
-                    if(mapDrawn) {
-                        val newFc = fc?.filter { collected?.contains(it.getStringProperty("id"))!! } as MutableList<Feature>?
-                        newFc?.forEach {
-                            map?.removeMarker(markers[it.getStringProperty("id")]!!)
-                        }
-                    }
+                    updateMap()
                 }
             }
         }
     }
-
+    private fun updateMap(){
+        val newFc = fc?.filter { collected?.contains(it.getStringProperty("id"))!! } as MutableList<Feature>?
+        newFc?.forEach {
+            if(markers[it.getStringProperty("id")] != null){
+                map?.removeMarker(markers[it.getStringProperty("id")]!!)
+            }
+        }
+    }
     public override fun onResume() {
         super.onResume()
         mapView?.onResume()
@@ -345,14 +353,17 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         walletListener?.remove()
         locationEngine.removeLocationEngineListener(this)
         locationEngine.removeLocationUpdates()
-        Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
-        Log.d(tag, "[onStop] Storing Daily Coin Data of $dailyFcData")
+        Log.d(tag, "Writing to Preferences file $preferencesFile")
+        Log.d(tag, "[onStop] Storing Last Download Date of $downloadDate")
+        Log.d(tag, "[onStop] Storing Daily Coin Data")
+        Log.d(tag, "[onStop] Storing Collected Coin List of $collected")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
+        editor.putString("CollectedCoinList", collected?.joinToString("$"))
         // Apply the edits!
         editor.apply()
     }

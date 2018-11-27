@@ -77,7 +77,7 @@ class BankActivity : AppCompatActivity() {
     class SimpleItemRecyclerViewAdapter(private val parentActivity: BankActivity, private val values: ArrayList<Feature>?, private val twoPane: Boolean) :
             RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder>() {
 
-        private val onClickListener: View.OnClickListener
+        /*private val onClickListener: View.OnClickListener
 
         init {
             onClickListener = View.OnClickListener { v ->
@@ -99,7 +99,7 @@ class BankActivity : AppCompatActivity() {
                     v.context.startActivity(intent)
                 }
             }
-        }
+        }*/
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
@@ -118,7 +118,7 @@ class BankActivity : AppCompatActivity() {
 
             with(holder.itemView) {
                 tag = item
-                setOnClickListener(onClickListener)
+                //setOnClickListener(onClickListener)
             }
         }
 
