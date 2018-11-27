@@ -9,4 +9,6 @@
     <string name="sign_out">Sign out</string>
     <string name="title_coin_list">Wallet</string>
     <string name="title_coin_detail">Coin Details</string>
+    <string name="trade">Trade</string>
+    <string name="deposit">Deposit</string>
 </resources>

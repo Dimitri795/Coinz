@@ -1,16 +1,21 @@
 package com.example.dimit.coinz
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.NavUtils
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.*
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import kotlinx.android.synthetic.main.activity_bank.*
@@ -32,6 +37,16 @@ class BankActivity : AppCompatActivity() {
     private var twoPane: Boolean = false // whether the activity is in two pane mode
     private var fc : MutableList<Feature>? = null
     private var newfc : ArrayList<Feature>? = null
+    private var mAuth : FirebaseAuth? = null
+    private var db : FirebaseFirestore?  = null
+    private var goldListener : ListenerRegistration? = null
+    private lateinit var preferencesFile : String
+
+    companion object {
+        var totalGold  = 0 // The Amount of Gold in your bank
+        var goldCount : DocumentReference? = null
+        var deposited : MutableList<String>? = mutableListOf()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +54,21 @@ class BankActivity : AppCompatActivity() {
 
         setSupportActionBar(toolbar)
         toolbar.title = title
+
+        db = FirebaseFirestore.getInstance()
+        mAuth = FirebaseAuth.getInstance()
+        if(mAuth?.currentUser != null){
+            goldCount = db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)
+        }
+        goldListener = goldCount?.addSnapshotListener{docSnap, e ->
+            when{
+                e != null -> Log.d(tag,e.message)
+                docSnap != null && docSnap.exists() -> {
+                    totalGold = (docSnap.data!!["GoldCount"] as Long).toInt()
+                    Log.d(tag,"Snapshot listen successful")
+                }
+            }
+        }
 
         fab.setOnClickListener { _->
             startActivity(Intent(this@BankActivity,MainActivity::class.java))
@@ -51,7 +81,8 @@ class BankActivity : AppCompatActivity() {
             twoPane = true
         }
         fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
-        newfc = fc?.filter{MainActivity.collected?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
+        val wallet = MainActivity.collected?.filterNot { deposited?.contains(it)!! }
+        newfc = fc?.filter{wallet?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
         setupRecyclerView(Wallet)
     }
 
@@ -112,14 +143,39 @@ class BankActivity : AppCompatActivity() {
             val coinTitle = item?.getStringProperty("currency")
             val coinVal = item?.getStringProperty("value")?.toDouble()
             val displayText = "$coinTitle ${item?.getStringProperty("marker-symbol")}"
-            val displayContent = "Coin worth: ${((MainActivity().getGold(coinTitle!!))*coinVal!!).roundToInt()}"
+            val goldVal = ((MainActivity().getGold(coinTitle!!))*coinVal!!).roundToInt()
+            val displayContent = "Coin worth: $goldVal"
             holder.idView.text = displayText
             holder.contentView.text = displayContent
 
             with(holder.itemView) {
                 tag = item
-                //setOnClickListener(onClickListener)
+                tradeButton.setOnClickListener {
+                    removeItem(holder.adapterPosition) }
+                depositButton.setOnClickListener {
+                    addGold(goldVal,item.getStringProperty("id"))
+                    removeItem(holder.adapterPosition) }
             }
+        }
+
+        private fun removeItem(pos : Int){
+            if(pos > -1){
+                values?.removeAt(pos)
+            }
+            notifyItemRemoved(pos)
+            notifyItemRangeChanged(pos,values!!.size)
+        }
+
+        private fun addGold(gold : Int,id : String){
+            totalGold += gold
+            BankActivity.deposited?.add(id)
+            Log.d(this.parentActivity.tag,"Deposited coins ${BankActivity.deposited}")
+            val updates = HashMap<String, Any>()
+            updates[id] = FieldValue.delete()
+            BankActivity.goldCount?.collection(MainActivity.subcollection_key)?.document(MainActivity.personalwalletdoc)?.update(updates)
+                    ?.addOnCompleteListener { Log.d(this.parentActivity.tag,"Deleted Coin with id : $id") }
+                    ?.addOnFailureListener { Log.d(this.parentActivity.tag,"Error updating document",it) }
+            Toast.makeText(this.parentActivity,"$gold gold deposited!", Toast.LENGTH_SHORT).show()
         }
 
         override fun getItemCount() = values!!.size
@@ -132,9 +188,33 @@ class BankActivity : AppCompatActivity() {
 
     public override fun onStart() {
         super.onStart()
+        preferencesFile = "MyPrefsFile${mAuth?.uid}"
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // use ”” as the default value (this might be the first time the app is run)
+        val deposCoins = settings.getString("CollectedCoinList","")
+        if(deposCoins != ""){
+            deposited = deposCoins?.split(delimiters = *arrayOf("$"))?.toSet()?.toMutableList()
+        }
     }
 
     public override fun onStop() {
         super.onStop()
+        val user = HashMap<String,Any>()
+        user["GoldCount"] = totalGold
+        goldCount?.set(user as Map<String,Any>, SetOptions.merge())?.addOnSuccessListener{
+            Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid} and gold: $totalGold")
+        }?.addOnFailureListener {
+            Log.d(tag,"Error adding document",it)
+        }
+        goldListener?.remove()
+
+        Log.d(tag, "[onStop] Storing Deposited Coin List of $deposited")
+        // All objects are from android.context.Context
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // We need an Editor object to make preference changes.
+        val editor = settings.edit()
+        editor.putString("CollectedCoinList", deposited?.joinToString("$"))
+        // Apply the edits!
+        editor.apply()
     }
 }

@@ -69,10 +69,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private var newfc : MutableList<Feature>? = mutableListOf()
 
     companion object {
-        private const val collection_key = "Users"
-        private const val subcollection_key = "Wallet"
-        private const val personalwalletdoc = "Personal Wallet"
-        private const val giftwallet = "Gift Wallet"
+        const val collection_key = "Users"
+        const val subcollection_key = "Wallet"
+        const val personalwalletdoc = "Personal Wallet"
+        const val giftwallet = "Gift Wallet"
         var dailyFcData = "" //JsonData that was downloaded for the day
         var collected : MutableList<String>? = mutableListOf() // list of collected coins
     }
@@ -313,21 +313,25 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         dailyFcData = settings.getString("DailyCoinData","")!!
         val colcCoins = settings.getString("CollectedCoinList","")
         if(colcCoins != ""){
-            collected = colcCoins?.split(delimiters = *arrayOf("$")) as MutableList<String>?
-        }
-        Log.d(tag, "[onStart] Recalled Last Download Date is $downloadDate")
-        Log.d(tag, "[onStart] Recalled Daily Coin list")
-        Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
-        walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener{docSnap, e ->
-            when{
-                e != null -> Log.d(tag,e.message)
-                docSnap != null && docSnap.exists() -> {
-                    collected?.addAll(docSnap.data!!.keys)
-                    Log.d(tag,"Snapshot listen successful")
-                    updateMap()
+            collected = colcCoins?.split(delimiters = *arrayOf("$"))?.toSet()?.toMutableList()
+        } else {
+            walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener { docSnap, e ->
+                when {
+                    e != null -> Log.d(tag, e.message)
+                    docSnap != null && docSnap.exists() -> {
+                        collected?.addAll(docSnap.data!!.keys)
+                        collected?.toSet()?.toMutableList()
+                        Log.d(tag, "Snapshot listen successful")
+                        updateMap()
+                    }
                 }
             }
         }
+
+        Log.d(tag, "[onStart] Recalled Last Download Date is $downloadDate")
+        Log.d(tag, "[onStart] Recalled Daily Coin list")
+        Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
+
     }
     private fun updateMap(){
         val newFc = fc?.filter { collected?.contains(it.getStringProperty("id"))!! } as MutableList<Feature>?
@@ -353,6 +357,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         walletListener?.remove()
         locationEngine.removeLocationEngineListener(this)
         locationEngine.removeLocationUpdates()
+
         Log.d(tag, "Writing to Preferences file $preferencesFile")
         Log.d(tag, "[onStop] Storing Last Download Date of $downloadDate")
         Log.d(tag, "[onStop] Storing Daily Coin Data")

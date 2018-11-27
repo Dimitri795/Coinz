@@ -52,10 +52,11 @@ class LoginActivity : AppCompatActivity() {
                         val profileUpdates = UserProfileChangeRequest.Builder()
                                 .setDisplayName("bob").build()
                         user?.updateProfile(profileUpdates)*/
-                        val user = HashMap<String,String>()
+                        val user = HashMap<String,Any>()
                         user["UserName"] = fieldEmail.text.toString().substringBefore('@')
                         user["Email"] = fieldEmail.text.toString()
-                        db?.collection("Users")?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
+                        user["GoldCount"] = 0
+                        db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
                             Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid}")
                         }?.addOnFailureListener {
                             Log.d(tag,"Error adding document",it)
