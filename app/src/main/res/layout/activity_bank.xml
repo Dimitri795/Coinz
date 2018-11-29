@@ -19,6 +19,30 @@
             android:layout_height="?attr/actionBarSize"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
 
+        <LinearLayout
+            android:id ="@+id/balancefields"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/balance"
+                android:layout_width="179dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:text="@string/available_gold"
+                android:textAppearance="@style/TextAppearance.AppCompat.Headline"
+                android:visibility="invisible" />
+
+            <TextView
+                android:id="@+id/balanceVal"
+                android:layout_width="278dp"
+                android:layout_height="32dp"
+                android:layout_gravity="end"
+                android:textAppearance="@style/TextAppearance.AppCompat.Headline"
+                android:visibility="invisible" />
+
+        </LinearLayout>
+
     </android.support.design.widget.AppBarLayout>
 
     <FrameLayout

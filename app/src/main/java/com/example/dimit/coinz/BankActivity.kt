@@ -23,18 +23,9 @@ import kotlinx.android.synthetic.main.coin_list.*
 import kotlinx.android.synthetic.main.coin_list_content.view.*
 import kotlin.math.roundToInt
 
-/**
- * An activity representing a list of Pings. This activity
- * has different presentations for handset and tablet-size devices. On
- * handsets, the activity presents a list of items, which when touched,
- * lead to a [CoinDetailActivity] representing
- * item details. On tablets, the activity presents the list of items and
- * item details side-by-side using two vertical panes.
- */
 class BankActivity : AppCompatActivity() {
 
     private val tag = "BankActivity"
-    private var twoPane: Boolean = false // whether the activity is in two pane mode
     private var fc : MutableList<Feature>? = null
     private var newfc : ArrayList<Feature>? = null
     private var mAuth : FirebaseAuth? = null
@@ -45,7 +36,7 @@ class BankActivity : AppCompatActivity() {
     companion object {
         var totalGold  = 0 // The Amount of Gold in your bank
         var goldCount : DocumentReference? = null
-        var deposited : MutableList<String>? = mutableListOf()
+        var used : MutableList<String>? = mutableListOf()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +56,9 @@ class BankActivity : AppCompatActivity() {
                 e != null -> Log.d(tag,e.message)
                 docSnap != null && docSnap.exists() -> {
                     totalGold = (docSnap.data!!["GoldCount"] as Long).toInt()
+                    findViewById<TextView>(R.id.balance).visibility = View.VISIBLE
+                    findViewById<TextView>(R.id.balanceVal).visibility = View.VISIBLE
+                    updateTextview()
                     Log.d(tag,"Snapshot listen successful")
                 }
             }
@@ -76,12 +70,8 @@ class BankActivity : AppCompatActivity() {
         // Show the Up button in the action bar.
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        if (coin_detail_container != null) {
-            // The detail container view will be present only in the large-screen layouts (res/values-w900dp).
-            twoPane = true
-        }
         fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
-        val wallet = MainActivity.collected?.filterNot { deposited?.contains(it)!! }
+        val wallet = MainActivity.collected?.filterNot { used?.contains(it)!! }
         newfc = fc?.filter{wallet?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
         setupRecyclerView(Wallet)
     }
@@ -100,12 +90,12 @@ class BankActivity : AppCompatActivity() {
     private fun setupRecyclerView(recyclerView: RecyclerView) {
         Wallet.apply {
             layoutManager = LinearLayoutManager(this@BankActivity)
-            recyclerView.adapter = SimpleItemRecyclerViewAdapter(this@BankActivity,newfc,twoPane)
+            recyclerView.adapter = SimpleItemRecyclerViewAdapter(this@BankActivity,newfc)
         }
 
     }
 
-    class SimpleItemRecyclerViewAdapter(private val parentActivity: BankActivity, private val values: ArrayList<Feature>?, private val twoPane: Boolean) :
+    class SimpleItemRecyclerViewAdapter(private val parentActivity: BankActivity, private val values: ArrayList<Feature>?) :
             RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder>() {
 
         /*private val onClickListener: View.OnClickListener
@@ -144,37 +134,47 @@ class BankActivity : AppCompatActivity() {
             val coinVal = item?.getStringProperty("value")?.toDouble()
             val displayText = "$coinTitle ${item?.getStringProperty("marker-symbol")}"
             val goldVal = ((MainActivity().getGold(coinTitle!!))*coinVal!!).roundToInt()
-            val displayContent = "Coin worth: $goldVal"
+            val displayContent = "Coin worth: $goldVal gold"
             holder.idView.text = displayText
             holder.contentView.text = displayContent
 
             with(holder.itemView) {
                 tag = item
                 tradeButton.setOnClickListener {
-                    removeItem(holder.adapterPosition) }
+                    tradeCoin(item)}
+                    //removeItem(holder.adapterPosition,item.getStringProperty("id")) }
                 depositButton.setOnClickListener {
-                    addGold(goldVal,item.getStringProperty("id"))
-                    removeItem(holder.adapterPosition) }
+                    addGold(goldVal)
+                    removeItem(holder.adapterPosition,item.getStringProperty("id")) }
             }
         }
 
-        private fun removeItem(pos : Int){
+        private fun tradeCoin(item: Feature){
+            val intent = Intent(this.parentActivity, CoinDetailActivity::class.java).apply {
+                putExtra(CoinDetailFragment.ARG_ITEM_ID, item.toJson())
+            }
+            this.parentActivity.startActivity(intent)
+        }
+
+        private fun removeItem(pos : Int,id : String){
             if(pos > -1){
                 values?.removeAt(pos)
             }
             notifyItemRemoved(pos)
             notifyItemRangeChanged(pos,values!!.size)
-        }
 
-        private fun addGold(gold : Int,id : String){
-            totalGold += gold
-            BankActivity.deposited?.add(id)
-            Log.d(this.parentActivity.tag,"Deposited coins ${BankActivity.deposited}")
+            BankActivity.used?.add(id)
+            Log.d(this.parentActivity.tag,"Used coins ${BankActivity.used}")
             val updates = HashMap<String, Any>()
             updates[id] = FieldValue.delete()
             BankActivity.goldCount?.collection(MainActivity.subcollection_key)?.document(MainActivity.personalwalletdoc)?.update(updates)
                     ?.addOnCompleteListener { Log.d(this.parentActivity.tag,"Deleted Coin with id : $id") }
                     ?.addOnFailureListener { Log.d(this.parentActivity.tag,"Error updating document",it) }
+        }
+
+        private fun addGold(gold : Int){
+            totalGold += gold
+            this.parentActivity.updateTextview()
             Toast.makeText(this.parentActivity,"$gold gold deposited!", Toast.LENGTH_SHORT).show()
         }
 
@@ -186,14 +186,19 @@ class BankActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateTextview(){
+        val goldBal = findViewById<TextView>(R.id.balanceVal)
+        goldBal.text = totalGold.toString()
+    }
+
     public override fun onStart() {
         super.onStart()
         preferencesFile = "MyPrefsFile${mAuth?.uid}"
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
-        val deposCoins = settings.getString("CollectedCoinList","")
+        val deposCoins = settings.getString("UsedCoinList","")
         if(deposCoins != ""){
-            deposited = deposCoins?.split(delimiters = *arrayOf("$"))?.toSet()?.toMutableList()
+            used = deposCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toMutableList()
         }
     }
 
@@ -208,12 +213,12 @@ class BankActivity : AppCompatActivity() {
         }
         goldListener?.remove()
 
-        Log.d(tag, "[onStop] Storing Deposited Coin List of $deposited")
+        Log.d(tag, "[onStop] Storing Used Coin List of $used")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
-        editor.putString("CollectedCoinList", deposited?.joinToString("$"))
+        editor.putString("UsedCoinList", used?.joinToString("$"))
         // Apply the edits!
         editor.apply()
     }

@@ -7,12 +7,6 @@ import android.support.v7.app.AppCompatActivity
 import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_coin_detail.*
 
-/**
- * An activity representing a single Coin detail screen. This
- * activity is only used on narrow width devices. On tablet-size devices,
- * item details are presented side-by-side with a list of items
- * in a [BankActivity].
- */
 class CoinDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,8 +14,8 @@ class CoinDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_coin_detail)
         setSupportActionBar(detail_toolbar)
 
-        fab.setOnClickListener { _->
-            startActivity(Intent(this@CoinDetailActivity,MainActivity::class.java))
+        fab.setOnClickListener { _ ->
+            supportFragmentManager.findFragmentByTag(CoinDetailFragment.tag)?.onDestroyView()
         }
 
         // Show the Up button in the action bar.
@@ -51,4 +45,5 @@ class CoinDetailActivity : AppCompatActivity() {
                 }
                 else -> super.onOptionsItemSelected(item)
             }
+
 }

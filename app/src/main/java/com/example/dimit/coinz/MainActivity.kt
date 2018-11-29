@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.addSource(GeoJsonSource("geojson", dailyFcData))
             wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
             collected?.clear()
+            BankActivity.used?.clear() // day has changed so avoid clutter by removing previous days depositedd coins.
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
@@ -313,14 +314,14 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         dailyFcData = settings.getString("DailyCoinData","")!!
         val colcCoins = settings.getString("CollectedCoinList","")
         if(colcCoins != ""){
-            collected = colcCoins?.split(delimiters = *arrayOf("$"))?.toSet()?.toMutableList()
+            collected = colcCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toSet()?.toMutableList()
         } else {
             walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener { docSnap, e ->
                 when {
                     e != null -> Log.d(tag, e.message)
                     docSnap != null && docSnap.exists() -> {
                         collected?.addAll(docSnap.data!!.keys)
-                        collected?.toSet()?.toMutableList()
+                        collected?.asSequence()?.toSet()?.toMutableList()
                         Log.d(tag, "Snapshot listen successful")
                         updateMap()
                     }
@@ -355,8 +356,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         super.onStop()
         mapView?.onStop()
         walletListener?.remove()
-        locationEngine.removeLocationEngineListener(this)
-        locationEngine.removeLocationUpdates()
+        if(::locationEngine.isInitialized){
+            locationEngine.removeLocationEngineListener(this)
+            locationEngine.removeLocationUpdates()
+        }
 
         Log.d(tag, "Writing to Preferences file $preferencesFile")
         Log.d(tag, "[onStop] Storing Last Download Date of $downloadDate")
