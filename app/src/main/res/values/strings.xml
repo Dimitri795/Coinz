@@ -12,4 +12,6 @@
     <string name="trade">Trade</string>
     <string name="deposit">Deposit</string>
     <string name="available_gold">Available Gold:</string>
+    <string name="send_coin">Send Coin</string>
+    <string name="recipient">Recipient :</string>
 </resources>

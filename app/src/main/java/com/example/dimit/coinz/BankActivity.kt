@@ -3,9 +3,9 @@ package com.example.dimit.coinz
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.support.v4.app.Fragment
 import android.support.v4.app.NavUtils
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.LayoutInflater
@@ -35,8 +35,11 @@ class BankActivity : AppCompatActivity() {
 
     companion object {
         var totalGold  = 0 // The Amount of Gold in your bank
+        var dailyLimit = 0 // The amount of coins that can be deposited into the bank daily
         var goldCount : DocumentReference? = null
         var used : MutableList<String>? = mutableListOf()
+        var tradeGold = 0
+        var tradeValid = true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,6 +62,17 @@ class BankActivity : AppCompatActivity() {
                     findViewById<TextView>(R.id.balance).visibility = View.VISIBLE
                     findViewById<TextView>(R.id.balanceVal).visibility = View.VISIBLE
                     updateTextview()
+                    val doc = docSnap.reference
+                    val senderDoc = doc.collection(MainActivity.subcollection_key).document(MainActivity.sendersdoc)
+                    senderDoc.get().addOnSuccessListener { snap ->
+                        if(snap.exists() && snap != null){
+                            snap.data?.forEach { sender ->
+                                Toast.makeText(this,"Coin worth ${sender.value} sent by " +
+                                        sender.key.substringBefore("$"),Toast.LENGTH_SHORT).show()
+                            }
+                            senderDoc.delete()// all senders have been acknowledged. Clear list
+                        }
+                    }
                     Log.d(tag,"Snapshot listen successful")
                 }
             }
@@ -70,10 +84,6 @@ class BankActivity : AppCompatActivity() {
         // Show the Up button in the action bar.
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
-        val wallet = MainActivity.collected?.filterNot { used?.contains(it)!! }
-        newfc = fc?.filter{wallet?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
-        setupRecyclerView(Wallet)
     }
 
 
@@ -89,7 +99,6 @@ class BankActivity : AppCompatActivity() {
 
     private fun setupRecyclerView(recyclerView: RecyclerView) {
         Wallet.apply {
-            layoutManager = LinearLayoutManager(this@BankActivity)
             recyclerView.adapter = SimpleItemRecyclerViewAdapter(this@BankActivity,newfc)
         }
 
@@ -141,8 +150,13 @@ class BankActivity : AppCompatActivity() {
             with(holder.itemView) {
                 tag = item
                 tradeButton.setOnClickListener {
-                    tradeCoin(item)}
-                    //removeItem(holder.adapterPosition,item.getStringProperty("id")) }
+                    BankActivity.tradeGold = goldVal
+                    tradeCoin(item)
+                    removeItem(holder.adapterPosition,item.getStringProperty("id"))
+                }
+                if(dailyLimit>=25){
+                    depositButton.visibility = View.GONE
+                }
                 depositButton.setOnClickListener {
                     addGold(goldVal)
                     removeItem(holder.adapterPosition,item.getStringProperty("id")) }
@@ -174,6 +188,10 @@ class BankActivity : AppCompatActivity() {
 
         private fun addGold(gold : Int){
             totalGold += gold
+            dailyLimit++
+            if(dailyLimit == 25){
+                Toast.makeText(this.parentActivity,"Daily Deposit limit has been reached!",Toast.LENGTH_SHORT).show()
+            }
             this.parentActivity.updateTextview()
             Toast.makeText(this.parentActivity,"$gold gold deposited!", Toast.LENGTH_SHORT).show()
         }
@@ -186,20 +204,28 @@ class BankActivity : AppCompatActivity() {
         }
     }
 
+
     private fun updateTextview(){
         val goldBal = findViewById<TextView>(R.id.balanceVal)
         goldBal.text = totalGold.toString()
     }
+
+
 
     public override fun onStart() {
         super.onStart()
         preferencesFile = "MyPrefsFile${mAuth?.uid}"
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
+        dailyLimit = settings.getInt("DailyLimit",0)
         val deposCoins = settings.getString("UsedCoinList","")
         if(deposCoins != ""){
             used = deposCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toMutableList()
         }
+        fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
+        val wallet = MainActivity.collected?.filterNot { used?.contains(it)!! }
+        newfc = fc?.filter{wallet?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
+        setupRecyclerView(Wallet)
     }
 
     public override fun onStop() {
@@ -219,6 +245,7 @@ class BankActivity : AppCompatActivity() {
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("UsedCoinList", used?.joinToString("$"))
+        editor.putInt("DailyLimit", dailyLimit)
         // Apply the edits!
         editor.apply()
     }

@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         const val collection_key = "Users"
         const val subcollection_key = "Wallet"
         const val personalwalletdoc = "Personal Wallet"
-        const val giftwallet = "Gift Wallet"
+        const val sendersdoc = "Senders"
         var dailyFcData = "" //JsonData that was downloaded for the day
         var collected : MutableList<String>? = mutableListOf() // list of collected coins
     }
@@ -142,6 +142,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
             collected?.clear()
             BankActivity.used?.clear() // day has changed so avoid clutter by removing previous days depositedd coins.
+            BankActivity.dailyLimit = 0
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
