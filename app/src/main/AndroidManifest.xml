@@ -36,7 +36,7 @@
                 android:value="com.example.dimit.coinz.MainActivity" />
         </activity>
         <activity
-            android:name=".CoinDetailActivity"
+            android:name=".TradeActivity"
             android:label="@string/title_coin_detail"
             android:parentActivityName=".BankActivity"
             android:theme="@style/AppTheme.NoActionBar">

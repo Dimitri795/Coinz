@@ -3,7 +3,6 @@ package com.example.dimit.coinz
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.support.v4.app.NavUtils
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
@@ -39,7 +38,8 @@ class BankActivity : AppCompatActivity() {
         var goldCount : DocumentReference? = null
         var used : MutableList<String>? = mutableListOf()
         var tradeGold = 0
-        var tradeValid = true
+        var tradeValid = false
+        var tradeItemId = ""
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,30 +107,6 @@ class BankActivity : AppCompatActivity() {
     class SimpleItemRecyclerViewAdapter(private val parentActivity: BankActivity, private val values: ArrayList<Feature>?) :
             RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder>() {
 
-        /*private val onClickListener: View.OnClickListener
-
-        init {
-            onClickListener = View.OnClickListener { v ->
-                val item = v.tag as Feature
-                if (twoPane) {
-                    val fragment = CoinDetailFragment().apply {
-                        arguments = Bundle().apply {
-                            putString(CoinDetailFragment.ARG_ITEM_ID, item.toJson())
-                        }
-                    }
-                    parentActivity.supportFragmentManager
-                            .beginTransaction()
-                            .replace(R.id.coin_detail_container, fragment)
-                            .commit()
-                } else {
-                    val intent = Intent(v.context, CoinDetailActivity::class.java).apply {
-                        putExtra(CoinDetailFragment.ARG_ITEM_ID, item.toJson())
-                    }
-                    v.context.startActivity(intent)
-                }
-            }
-        }*/
-
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.coin_list_content, parent, false)
@@ -149,10 +125,11 @@ class BankActivity : AppCompatActivity() {
 
             with(holder.itemView) {
                 tag = item
+
                 tradeButton.setOnClickListener {
-                    BankActivity.tradeGold = goldVal
+                    tradeGold = goldVal
                     tradeCoin(item)
-                    removeItem(holder.adapterPosition,item.getStringProperty("id"))
+                    tradeItemId = item.getStringProperty("id")
                 }
                 if(dailyLimit>=25){
                     depositButton.visibility = View.GONE
@@ -164,13 +141,13 @@ class BankActivity : AppCompatActivity() {
         }
 
         private fun tradeCoin(item: Feature){
-            val intent = Intent(this.parentActivity, CoinDetailActivity::class.java).apply {
-                putExtra(CoinDetailFragment.ARG_ITEM_ID, item.toJson())
+            val intent = Intent(this.parentActivity, TradeActivity::class.java).apply {
+                putExtra(TradeFragment.ARG_ITEM_ID, item.toJson())
             }
             this.parentActivity.startActivity(intent)
         }
 
-        private fun removeItem(pos : Int,id : String){
+        private fun removeItem(pos : Int, id : String){
             if(pos > -1){
                 values?.removeAt(pos)
             }
@@ -221,6 +198,15 @@ class BankActivity : AppCompatActivity() {
         val deposCoins = settings.getString("UsedCoinList","")
         if(deposCoins != ""){
             used = deposCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toMutableList()
+        }
+        if(tradeValid){
+            used?.add(tradeItemId)
+            tradeValid = false
+            val updates = HashMap<String, Any>()
+            updates[tradeItemId] = FieldValue.delete()
+            goldCount?.collection(MainActivity.subcollection_key)?.document(MainActivity.personalwalletdoc)?.update(updates)
+                    ?.addOnCompleteListener { Log.d(tag,"Deleted Coin with id : $tradeItemId") }
+                    ?.addOnFailureListener { Log.d(tag,"Error updating document",it) }
         }
         fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
         val wallet = MainActivity.collected?.filterNot { used?.contains(it)!! }
