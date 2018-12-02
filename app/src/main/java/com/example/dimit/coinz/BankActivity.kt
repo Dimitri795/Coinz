@@ -79,7 +79,7 @@ class BankActivity : AppCompatActivity() {
         }
 
         fab.setOnClickListener { _->
-            startActivity(Intent(this@BankActivity,MainActivity::class.java))
+            startActivity(Intent(this@BankActivity,ShopActivity::class.java))
         }
         // Show the Up button in the action bar.
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -166,8 +166,9 @@ class BankActivity : AppCompatActivity() {
         private fun addGold(gold : Int){
             totalGold += gold
             dailyLimit++
-            if(dailyLimit == 25){
+            if(dailyLimit >= 25){
                 Toast.makeText(this.parentActivity,"Daily Deposit limit has been reached!",Toast.LENGTH_SHORT).show()
+                parentActivity.resetRecView()
             }
             this.parentActivity.updateTextview()
             Toast.makeText(this.parentActivity,"$gold gold deposited!", Toast.LENGTH_SHORT).show()
@@ -181,13 +182,14 @@ class BankActivity : AppCompatActivity() {
         }
     }
 
+    private fun resetRecView(){
+        setupRecyclerView(Wallet)
+    }
 
     private fun updateTextview(){
         val goldBal = findViewById<TextView>(R.id.balanceVal)
         goldBal.text = totalGold.toString()
     }
-
-
 
     public override fun onStart() {
         super.onStart()
@@ -208,6 +210,8 @@ class BankActivity : AppCompatActivity() {
                     ?.addOnCompleteListener { Log.d(tag,"Deleted Coin with id : $tradeItemId") }
                     ?.addOnFailureListener { Log.d(tag,"Error updating document",it) }
         }
+        Log.d(tag,"[On Start] Restoring daily limit of $dailyLimit")
+        Log.d(tag,"[On Start] Restoring used coin list of $used")
         fc = FeatureCollection.fromJson(MainActivity.dailyFcData).features()
         val wallet = MainActivity.collected?.filterNot { used?.contains(it)!! }
         newfc = fc?.filter{wallet?.contains(it.getStringProperty("id"))!!} as ArrayList<Feature>?
@@ -226,6 +230,7 @@ class BankActivity : AppCompatActivity() {
         goldListener?.remove()
 
         Log.d(tag, "[onStop] Storing Used Coin List of $used")
+        Log.d(tag,"[onStop] Storing daily limit of $dailyLimit")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.

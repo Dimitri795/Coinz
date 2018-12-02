@@ -44,6 +44,24 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.dimit.coinz.BankActivity" />
         </activity>
+        <activity
+            android:name=".ShopActivity"
+            android:label="@string/title_item_list"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.dimit.coinz.MainActivity" />
+        </activity>
+        <activity
+            android:name=".ItemDetailActivity"
+            android:label="@string/title_item_detail"
+            android:parentActivityName=".ShopActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.dimit.coinz.ShopActivity" />
+        </activity>
     </application>
 
 </manifest>

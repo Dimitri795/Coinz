@@ -24,9 +24,6 @@ class TradeActivity : AppCompatActivity(),TradeFragment.OnFragInteractionListene
         setContentView(R.layout.activity_trade)
         setSupportActionBar(detail_toolbar)
 
-        fab.setOnClickListener { _ ->
-            supportFragmentManager.findFragmentByTag(TradeFragment.tag)?.onDestroyView()
-        }
         db = FirebaseFirestore.getInstance()
         mAuth = FirebaseAuth.getInstance()
 

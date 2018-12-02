@@ -102,6 +102,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         fab.setOnClickListener { _->
             startActivity(Intent(this@MainActivity,BankActivity::class.java))
         }
+        fab2.setOnClickListener { _->
+            startActivity(Intent(this@MainActivity,ShopActivity::class.java))
+        }
     }
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
@@ -373,6 +376,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
         editor.putString("CollectedCoinList", collected?.joinToString("$"))
+        editor.putString("UsedCoinList", BankActivity.used?.joinToString("$"))
+        editor.putInt("DailyLimit", BankActivity.dailyLimit)
         // Apply the edits!
         editor.apply()
     }

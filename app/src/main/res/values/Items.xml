@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="Names">
+        <item>Coin Magnet v1.0</item>
+        <item>Coin Magnet v2.0</item>
+        <item>Wallet</item>
+        <item>Bigger Wallet</item>
+        <item>Even Bigger Wallet</item>
+        <item>Even Bigger Bigger Wallet</item>
+        <item>Biggest Wallet</item>
+    </string-array>
+    <string-array name="Descriptions">
+        <item>
+            Tired of passing just out of range of those pesky, hard to reach coins?
+            \nTHEN LOOK NO FURTHER!
+            With this coin magnet you can reach coins from up to 30 metres away!!!
+        </item>
+        <item>
+            Is your rusty old coin magnet still not reaching all the places you want it to?
+            Are you tired of having to walk in random areas to get that last coin?
+            \nTHEN BOY DO WE HAVE A DEAL FOR YOU!
+            With this coin magnet you can reach coins from up to 35 metres away!!!
+        </item>
+        <item>
+            Did you already deposit your 25 Coin limit only to find the coin of your dreams?
+            Did trading it break your heart and made you wish there was some way to deposit just one more coin?
+            \nWELL YOU\'RE IN LUCK FRIEND!
+            With this new wallet with ONE extra pouch you can deposit a whopping 26 coins!
+        </item>
+        <item>
+            Has the spirit of capitalism sunk its claws into you and 26 coins is no longer enough?
+            Would you rather hoard your remaining coins than trade them to Barry for pocket change AGAIN?
+            \nTHEN THIS IS THE WALLET FOR YOU!
+            Now packing TWO extra pouches you can deposit 27 coins easily!
+        </item>
+        <item>
+            Is the uneven amount of 27 really grating on your nerves?
+            Would you rather it just rounded off to a more memorable number that\'s divisible by 2?
+            \nTHEN HAVE NO FEAR!
+            This new and improved wallet lets you deposit the 28 coins your even-number loving heart desires!
+        </item>
+        <item>
+            Has that pesky capitalism spirit been whispering in your ear again?
+            Have you plotted the graphs and seen how quickly this investment pays for itself?
+            \nTHEN WHAT ARE YOU WAITING FOR YOU MONEY HUNGRY MANIAC?!?
+            See your bank account sore as you deposit a grand total of 29 coins daily!
+        </item>
+        <item>
+            Do I even need to read you the sales pitch?
+            It\'s the biggest wallet. The end of the road you\'ve been walking since you bought your first wallet.
+            The light at the end of the tunnel. Whoever said size doesn\'t matter hasn\'t seen this bad boy!
+            \nCOME ON! BUY IT!
+            \nYOU KNOW YOU WANT TO!
+            Let your capitalist heart rest easy tonight and every night when you deposit a massive 30 coins a day!
+        </item>
+    </string-array>
+    <array name="Images">
+        <item>@drawable/coin_magnet</item>  <!-- Icon made by https://freepik.com from www.flaticons.com-->
+        <item>@drawable/coin_magnet2</item> <!-- Icon made by dDara from www.flaticons.com-->
+        <item>@drawable/wallet</item>  <!-- Icon made by https://freepik.com from www.flaticons.com-->
+        <item>@drawable/wallet1</item> <!-- Icon made by https://smashicons.com from www.flaticons.com-->
+        <item>@drawable/wallet2</item> <!-- Icon made by https://freepik.com from www.flaticons.com-->
+        <item>@drawable/wallet3</item> <!-- Icon made by Pixel Buddha from www.flaticons.com-->
+        <item>@drawable/wallet4</item> <!-- Icon made by https://freepik.com from www.flaticons.com-->
+    </array>
+    <integer-array name="Costs">
+        <item>15000</item>
+        <item>25000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>25000</item>
+        <item>30000</item>
+    </integer-array>
+</resources>

@@ -14,4 +14,7 @@
     <string name="available_gold">Available Gold:</string>
     <string name="send_coin">Send Coin</string>
     <string name="recipient">Recipient :</string>
+    <string name="title_item_list">Shop</string>
+    <string name="title_item_detail">Item Detail</string>
+    <string name="buy">Buy</string>
 </resources>

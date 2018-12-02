@@ -46,4 +46,14 @@
         app:elevation="1dp"
         app:srcCompat="@drawable/bank" /> <!-- Icon made by https://smashicons.com from www.flaticons.com-->
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab2"
+        android:layout_width="wrap_content"
+        android:layout_height="54dp"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="@dimen/fab_margin"
+        app:backgroundTint="@color/design_default_color_primary"
+        app:elevation="1dp"
+        app:srcCompat="@drawable/store" /> <!-- Icon made by https://freepik.com from www.flaticons.com-->
+
 </android.support.design.widget.CoordinatorLayout>
