@@ -1,9 +1,9 @@
 package com.example.dimit.coinz
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.NavUtils
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
 import android.util.Log
@@ -24,12 +24,13 @@ class ShopActivity : AppCompatActivity() {
     private var tag = "ShopActivity"
     private var twoPane: Boolean = false
     private var itemList = ArrayList<Items>()
-    private var itemCount = 7
     private var db : FirebaseFirestore? = null
     private var mAuth : FirebaseAuth? = null
+    private lateinit var preferencesFile : String
 
     companion object {
-        private const val avItems = "Available_Items"
+        var itemCount = 7
+        var avItemMap = HashMap<Items,Boolean>(itemCount)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,52 +129,66 @@ class ShopActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-
-        db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.get()?.addOnSuccessListener { snap ->
-            if (snap.exists()) {
-                if (snap.data!![avItems] != null) {
-                    val doc = snap.data!![avItems]
-                    Log.d(tag, "[onStart] Snapshot exists and available item list is: $doc")
-                    composeItemList(doc as IntArray)
-                } else {
-                    Log.d(tag, "[onStart] Snapshot exists but field available items doesn't")
-                    val ints = IntArray(itemCount)
-                    for (i in 0 until itemCount) {
-                        ints[i] = i
-                    }
-                    composeItemList(ints)
+        preferencesFile = "MyPrefsFile${mAuth?.uid}"
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // use ”” as the default value (this might be the first time the app is run)
+        composeItemList()
+        val items = settings.getString("AvailableItemList","")
+        Log.d(tag, "[onStart] Restoring available item list is: $items")
+        if(items != ""){
+            items?.split(delimiters = *arrayOf("$"))?.forEach {id ->
+                avItemMap.forEach {
+                    if(it.key.id == id.toInt())
+                        itemList.add(it.key)
                 }
-            } else {
-                Log.d(tag, "Snapshot doesn't exist")
+            }
+        } else{
+            avItemMap.forEach {
+                if(it.value){
+                    itemList.add(it.key)
+                }
             }
         }
+        setupRecyclerView(Shop)
     }
 
     override fun onStop() {
         super.onStop()
+        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        // We need an Editor object to make preference changes.
+        val editor = settings.edit()
+        var items = listOf<String>()
+        itemList.forEach {
+            items += it.id.toString()
+        }
+        editor.putString("AvailableItemList",items.joinToString("$"))
+        editor.apply()
+        Log.d(tag,"[onStop] Storing Available Item list $items")
     }
 
-    data class Items (val id : Int, val name : String, val descrip : String,val img : Int){
+    data class Items (val id : Int, val name : String){
         // class for items that can be bought in the shop for gold
-        var cost  = 0 // cost of items in gold
-        var available = false
         var original = false
+        var cost  = 0 // cost of items in gold
+        var img = 0 //  resource int for the item picture\
+        var descrip = ""
     }
 
-    private fun composeItemList(itemIds : IntArray){
+    private fun composeItemList(){
         val names = resources.getStringArray(R.array.Names)
         val descrips = resources.getStringArray(R.array.Descriptions)
         val imgs = resources.obtainTypedArray(R.array.Images)
         val costs = resources.getIntArray(R.array.Costs)
-        for(i in itemIds){
+        for(i in 0 until itemCount){
             /* Items in order: Coin Magnet1,Magnet2,Wallet1,Wallet2,Wallet3,Wallet4,Wallet5*/
-            val item = Items(i,names[i],descrips[i],imgs.getResourceId(i,0))
+            val item = Items(i,names[i])
+            item.descrip = descrips[i]
+            item.img = imgs.getResourceId(i,0)
             item.cost = costs[i]
             if(i == 0 || i == 2 ){
                 item.original = true
             }
-            itemList.add(item)
+            avItemMap[item] = item.original
         }
-        setupRecyclerView(Shop)
     }
 }

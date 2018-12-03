@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.activity_item_detail.*
 import kotlinx.android.synthetic.main.item_detail.view.*
-import kotlinx.android.synthetic.main.item_list.*
 
 class ItemDetailFragment : Fragment() {
 
@@ -21,11 +20,9 @@ class ItemDetailFragment : Fragment() {
                 val i = it.getInt(ARG_ITEM_ID)
                 val name = resources.getStringArray(R.array.Names)[i]
                 val descrip = resources.getStringArray(R.array.Descriptions)[i]
-                val imgs = resources.obtainTypedArray(R.array.Images)
-                val img = imgs.getResourceId(i,0)
-                imgs.recycle()
                 val cost = resources.getIntArray(R.array.Costs)[i]
-                item = ShopActivity.Items(i,name,descrip,img)
+                item = ShopActivity.Items(i,name)
+                item?.descrip = descrip
                 item?.cost = cost
                 activity?.toolbar_layout?.title = item?.name
             }

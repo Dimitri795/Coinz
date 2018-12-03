@@ -36,6 +36,7 @@ class BankActivity : AppCompatActivity() {
         var totalGold  = 0 // The Amount of Gold in your bank
         var dailyLimit = 0 // The amount of coins that can be deposited into the bank daily
         var goldCount : DocumentReference? = null
+        var goldkey = "GoldCount"
         var used : MutableList<String>? = mutableListOf()
         var tradeGold = 0
         var tradeValid = false
@@ -51,14 +52,12 @@ class BankActivity : AppCompatActivity() {
 
         db = FirebaseFirestore.getInstance()
         mAuth = FirebaseAuth.getInstance()
-        if(mAuth?.currentUser != null){
-            goldCount = db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)
-        }
+        goldCount = db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)
         goldListener = goldCount?.addSnapshotListener{docSnap, e ->
             when{
                 e != null -> Log.d(tag,e.message)
                 docSnap != null && docSnap.exists() -> {
-                    totalGold = (docSnap.data!!["GoldCount"] as Long).toInt()
+                    totalGold = (docSnap.data!![goldkey] as Long).toInt()
                     findViewById<TextView>(R.id.balance).visibility = View.VISIBLE
                     findViewById<TextView>(R.id.balanceVal).visibility = View.VISIBLE
                     updateTextview()
@@ -131,7 +130,7 @@ class BankActivity : AppCompatActivity() {
                     tradeCoin(item)
                     tradeItemId = item.getStringProperty("id")
                 }
-                if(dailyLimit>=25){
+                if(dailyLimit>= MainActivity.walletSize){
                     depositButton.visibility = View.GONE
                 }
                 depositButton.setOnClickListener {
@@ -166,7 +165,7 @@ class BankActivity : AppCompatActivity() {
         private fun addGold(gold : Int){
             totalGold += gold
             dailyLimit++
-            if(dailyLimit >= 25){
+            if(dailyLimit >= MainActivity.walletSize){
                 Toast.makeText(this.parentActivity,"Daily Deposit limit has been reached!",Toast.LENGTH_SHORT).show()
                 parentActivity.resetRecView()
             }
@@ -222,7 +221,7 @@ class BankActivity : AppCompatActivity() {
         super.onStop()
         val user = HashMap<String,Any>()
         user["GoldCount"] = totalGold
-        goldCount?.set(user as Map<String,Any>, SetOptions.merge())?.addOnSuccessListener{
+        goldCount?.set(user , SetOptions.merge())?.addOnSuccessListener{
             Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid} and gold: $totalGold")
         }?.addOnFailureListener {
             Log.d(tag,"Error adding document",it)

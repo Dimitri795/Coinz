@@ -60,9 +60,9 @@ class TradeActivity : AppCompatActivity(),TradeFragment.OnFragInteractionListene
         val colKey = MainActivity.collection_key
         val traded = BankActivity.tradeGold
         val recId = doc.id
-        val gold = (doc.data!!["GoldCount"] as Long).toInt()
+        val gold = (doc.data!![BankActivity.goldkey] as Long).toInt()
         val user = HashMap<String,Any>()
-        user["GoldCount"] = traded + gold
+        user[BankActivity.goldkey] = traded + gold
         db?.collection(colKey)?.document(recId)
                 ?.set(user, SetOptions.merge())
                 ?.addOnSuccessListener{ Log.d(tag,"Document SnapShot added with ID: $recId and gold: ${BankActivity.tradeGold +gold}") }

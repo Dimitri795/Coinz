@@ -75,6 +75,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         const val sendersdoc = "Senders"
         var dailyFcData = "" //JsonData that was downloaded for the day
         var collected : MutableList<String>? = mutableListOf() // list of collected coins
+        var walletSize = 25 // initial amount of coins that can be deposited daily
+        var coinReach = 25  // initial distance from within which you can collect a coin
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,14 +87,28 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         }
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
         db = FirebaseFirestore.getInstance()
         // Use com.google.firebase.Timestamp objects instead of java.util.Date objects
         val settings = FirebaseFirestoreSettings.Builder()
                 .setTimestampsInSnapshotsEnabled(true).setPersistenceEnabled(false).build()
         db?.firestoreSettings = settings
         if(mAuth?.currentUser != null){
-            wallet = db?.collection(collection_key)?.document(mAuth?.uid!!)?.collection(subcollection_key)
+            val docRef = db?.collection(collection_key)?.document(mAuth?.uid!!)
+            val crKey = ItemDetailActivity.coinReachKey
+            val wsKey = ItemDetailActivity.walletSizeKey
+            wallet = docRef?.collection(subcollection_key)
+            docRef?.get()?.addOnSuccessListener {
+                val doc = it.data!!
+                if(doc[crKey] != null){
+                    coinReach = (doc[crKey] as Long).toInt()
+                }
+                if(doc[wsKey] != null){
+                    walletSize = (doc[wsKey] as Long).toInt()
+                }
+            }
         }
+
 
         Mapbox.getInstance(this,getString(R.string.access_token))
         mapView = findViewById(R.id.mapboxMapView)
@@ -247,7 +263,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 latitude = coinCoord.latitude()
                 longitude = coinCoord.longitude()
             }
-            if (originLocation.distanceTo(coinLoc) <= 25.0) {
+            if (originLocation.distanceTo(coinLoc) <= coinReach) {
                 val id = it.getStringProperty("id")
                 collected?.add(id)
                 val data = HashMap<String,String>()
@@ -402,4 +418,5 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     private fun makeToast(msg : String){
         Toast.makeText(this@MainActivity,msg,Toast.LENGTH_SHORT).show()
     }
+
 }
