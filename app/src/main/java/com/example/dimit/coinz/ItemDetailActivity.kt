@@ -11,6 +11,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.android.synthetic.main.activity_item_detail.*
+import kotlinx.android.synthetic.main.item_list.*
 
 class ItemDetailActivity : AppCompatActivity() {
 
@@ -129,7 +130,7 @@ class ItemDetailActivity : AppCompatActivity() {
         if (newItems.isNotEmpty()) {
             editor.putString("AvailableItemList", newItems.joinToString("$"))
         } else {
-            editor.putString("AvailableItemList", "")
+            editor.putString("AvailableItemList", ShopActivity.itemCount.toString())
         }
         editor.apply()
         Log.d(tag, "[onStop] Storing Available Item list $newItems")

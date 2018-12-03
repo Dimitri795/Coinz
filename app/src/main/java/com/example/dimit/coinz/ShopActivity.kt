@@ -158,7 +158,7 @@ class ShopActivity : AppCompatActivity() {
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         var items = listOf<String>()
-        itemList.forEach {
+        itemList.toSet().forEach {
             items += it.id.toString()
         }
         editor.putString("AvailableItemList",items.joinToString("$"))
@@ -171,7 +171,7 @@ class ShopActivity : AppCompatActivity() {
         var original = false
         var cost  = 0 // cost of items in gold
         var img = 0 //  resource int for the item picture\
-        var descrip = ""
+        var descrip = "" // description to display to user when describing item
     }
 
     private fun composeItemList(){

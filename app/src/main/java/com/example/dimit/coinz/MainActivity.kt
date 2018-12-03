@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
+    private var newDay = false
     private var wallet : CollectionReference? = null // firebase storage of collected coins
     private var walletListener : ListenerRegistration? = null
     private lateinit var preferencesFile : String // for storing preferences
@@ -160,8 +161,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.addSource(GeoJsonSource("geojson", dailyFcData))
             wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
             collected?.clear()
-            BankActivity.used?.clear() // day has changed so avoid clutter by removing previous days depositedd coins.
-            BankActivity.dailyLimit = 0
+            newDay = true
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
@@ -392,8 +392,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
         editor.putString("CollectedCoinList", collected?.joinToString("$"))
-        editor.putString("UsedCoinList", BankActivity.used?.joinToString("$"))
-        editor.putInt("DailyLimit", BankActivity.dailyLimit)
+        if(newDay){
+            editor.putString("UsedCoinList", BankActivity.used?.joinToString("$"))
+            editor.putInt("DailyLimit", BankActivity.dailyLimit)
+            newDay = false
+        }
         // Apply the edits!
         editor.apply()
     }
