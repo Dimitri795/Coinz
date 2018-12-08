@@ -42,7 +42,6 @@ import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
@@ -79,7 +78,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         var collected : MutableList<String>? = mutableListOf() // list of collected coins
         var walletSize = 25 // initial amount of coins that can be deposited daily
         var coinReach = 25  // initial distance from within which you can collect a coin
-        var newDay = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -163,14 +161,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.addSource(GeoJsonSource("geojson", dailyFcData))
             wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
             collected?.clear()
-            newDay = true
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
-        shilRate.text = getGold("SHIL").roundToInt().toString()
-        dolrRate.text = getGold("DOLR").roundToInt().toString()
-        penyRate.text = getGold("PENY").roundToInt().toString()
-        quidRate.text = getGold("QUID").roundToInt().toString()
+        shilRate.text = "${getGold("SHIL").roundToInt()} gold"
+        dolrRate.text = "${getGold("DOLR").roundToInt()} gold"
+        penyRate.text = "${getGold("PENY").roundToInt()} gold"
+        quidRate.text = "${getGold("QUID").roundToInt()} gold"
     }
 
     private fun addMarkers(fc : MutableList<Feature>?){

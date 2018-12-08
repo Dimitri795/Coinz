@@ -18,4 +18,5 @@
     <string name="title_item_detail">Item Detail</string>
     <string name="buy">Buy</string>
     <string name="coin_to_gold_rate">Coin to Gold Rate:</string>
+    <string name="send_spare_change">Send Spare Change</string>
 </resources>

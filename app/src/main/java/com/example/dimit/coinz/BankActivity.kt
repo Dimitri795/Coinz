@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
@@ -20,6 +21,8 @@ import com.mapbox.geojson.FeatureCollection
 import kotlinx.android.synthetic.main.activity_bank.*
 import kotlinx.android.synthetic.main.coin_list.*
 import kotlinx.android.synthetic.main.coin_list_content.view.*
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 class BankActivity : AppCompatActivity() {
@@ -125,13 +128,20 @@ class BankActivity : AppCompatActivity() {
             with(holder.itemView) {
                 tag = item
 
-                tradeButton.setOnClickListener {
+                if(dailyLimit>= MainActivity.walletSize){
+                    depositButton.visibility = View.GONE
+                    tradeButton.visibility = View.GONE
+                    spareChangeButton.visibility = View.VISIBLE
+                }
+                val button : Button = if(tradeButton.visibility == View.VISIBLE){
+                    tradeButton
+                } else{
+                    spareChangeButton
+                }
+                button.setOnClickListener {
                     tradeGold = goldVal
                     tradeCoin(item)
                     tradeItemId = item.getStringProperty("id")
-                }
-                if(dailyLimit>= MainActivity.walletSize){
-                    depositButton.visibility = View.GONE
                 }
                 depositButton.setOnClickListener {
                     addGold(goldVal)
@@ -196,14 +206,16 @@ class BankActivity : AppCompatActivity() {
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
         dailyLimit = settings.getInt("DailyLimit",0)
+        val downloadDate = settings.getString("lastDownloadDate", "")!!
         val deposCoins = settings.getString("UsedCoinList","")
         if(deposCoins != ""){
             used = deposCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toMutableList()
         }
-        if(MainActivity.newDay){
+        val current = LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        val currentFormatted = current.substring(0,4)+"/"+ current.substring(4,6)+"/"+ current.substring(6)
+        if(downloadDate != currentFormatted){
             BankActivity.used?.clear()
             BankActivity.dailyLimit = 0
-            MainActivity.newDay = false
         }
         if(tradeValid){
             used?.add(tradeItemId)
