@@ -17,4 +17,5 @@
     <string name="title_item_list">Shop</string>
     <string name="title_item_detail">Item Detail</string>
     <string name="buy">Buy</string>
+    <string name="coin_to_gold_rate">Coin to Gold Rate:</string>
 </resources>

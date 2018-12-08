@@ -200,6 +200,11 @@ class BankActivity : AppCompatActivity() {
         if(deposCoins != ""){
             used = deposCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toMutableList()
         }
+        if(MainActivity.newDay){
+            BankActivity.used?.clear()
+            BankActivity.dailyLimit = 0
+            MainActivity.newDay = false
+        }
         if(tradeValid){
             used?.add(tradeItemId)
             tradeValid = false

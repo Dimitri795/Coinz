@@ -37,10 +37,12 @@ import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
@@ -59,7 +61,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
     private var downloadDate = "" // Format: YYYY/MM/DD
-    private var newDay = false
     private var wallet : CollectionReference? = null // firebase storage of collected coins
     private var walletListener : ListenerRegistration? = null
     private lateinit var preferencesFile : String // for storing preferences
@@ -78,6 +79,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         var collected : MutableList<String>? = mutableListOf() // list of collected coins
         var walletSize = 25 // initial amount of coins that can be deposited daily
         var coinReach = 25  // initial distance from within which you can collect a coin
+        var newDay = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -165,6 +167,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         }
         fc = FeatureCollection.fromJson(dailyFcData).features()
         addMarkers(fc)
+        shilRate.text = getGold("SHIL").roundToInt().toString()
+        dolrRate.text = getGold("DOLR").roundToInt().toString()
+        penyRate.text = getGold("PENY").roundToInt().toString()
+        quidRate.text = getGold("QUID").roundToInt().toString()
     }
 
     private fun addMarkers(fc : MutableList<Feature>?){
@@ -392,11 +398,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
         editor.putString("CollectedCoinList", collected?.joinToString("$"))
-        if(newDay){
-            editor.putString("UsedCoinList", BankActivity.used?.joinToString("$"))
-            editor.putInt("DailyLimit", BankActivity.dailyLimit)
-            newDay = false
-        }
         // Apply the edits!
         editor.apply()
     }

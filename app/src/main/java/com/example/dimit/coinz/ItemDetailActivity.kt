@@ -11,7 +11,6 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.android.synthetic.main.activity_item_detail.*
-import kotlinx.android.synthetic.main.item_list.*
 
 class ItemDetailActivity : AppCompatActivity() {
 
@@ -98,10 +97,14 @@ class ItemDetailActivity : AppCompatActivity() {
             }
     private fun itemBought(i:Int) {
         val user = HashMap<String, Any>()
-        if (i == 0 || i == 1) { //Coin Magnets Bought - Increase Coin reach
-            user[coinReachKey] = 25 + (5 * (i + 1))
+        if (i == 0 || i == 1) { //Coin Magnets Bought - Increase Coin
+            val coinReach = 25 + (5 * (i + 1))
+            user[coinReachKey] = coinReach
+            MainActivity.coinReach = coinReach
         } else { // until more items are added ll remaining ids are wallets - Increase wallet size
-            user[walletSizeKey] = 24 + i
+            val walletSize = 24 + i
+            user[walletSizeKey] = walletSize
+            MainActivity.walletSize = walletSize
         }
         docRef?.set(user, SetOptions.merge())
                 ?.addOnSuccessListener { Log.d(tag, "Updated Document with ID ${docRef?.id} with ${user.keys} : ${user.values}") }
