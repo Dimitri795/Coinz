@@ -21,29 +21,29 @@ import kotlinx.android.synthetic.main.item_list_content.view.*
 
 class ShopActivity : AppCompatActivity() {
 
-    private var tag = "ShopActivity"
-    private var twoPane: Boolean = false
-    private var itemList = ArrayList<Items>()
-    private var db : FirebaseFirestore? = null
-    private var mAuth : FirebaseAuth? = null
-    private lateinit var preferencesFile : String
+    private var tag = "ShopActivity"              // tag for logging
+    private var twoPane: Boolean = false          // boolean which determines what size screen is being used
+    private var itemList = ArrayList<Items>()     // List of available Items
+    private var db : FirebaseFirestore? = null    // the Firebase cloud storage variable
+    private var mAuth : FirebaseAuth? = null      // the Firebase authentication variable
+    private lateinit var preferencesFile : String // for storing preferences
 
-    companion object {
-        var itemCount = 7
-        var avItemMap = HashMap<Items,Boolean>(itemCount)
+    companion object { //globally accessible companion to this activity
+        var itemCount = 7                                 // Number of Items possible
+        var avItemMap = HashMap<Items,Boolean>(itemCount) // Hashmap of items and their initial availability
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_shop)
+        setContentView(R.layout.activity_shop) // tells app which layout to use
 
-        db = FirebaseFirestore.getInstance()
-        mAuth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()   // get the current instance of the Firebase cloud storage linked to the app
+        mAuth = FirebaseAuth.getInstance()     // get the current instance of the Firebase Authentication linked to the app
 
         setSupportActionBar(toolbar)
         toolbar.title = title
 
-        fab.setOnClickListener { _ ->
+        fab.setOnClickListener { _ -> // start the Bank activity on click
             startActivity(Intent(this@ShopActivity,BankActivity::class.java))
         }
         // Show the Up button in the action bar.
@@ -60,6 +60,7 @@ class ShopActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem) =
             when (item.itemId) {
                 android.R.id.home -> {
+                    // This ID represents the Home or Up button. Allow clicking it to take you back to the Main activity
                     NavUtils.navigateUpFromSameTask(this)
                     true
                 }
@@ -67,6 +68,7 @@ class ShopActivity : AppCompatActivity() {
             }
 
     private fun setupRecyclerView(recyclerView: RecyclerView) {
+        // apply this adapter to the recycler view
         recyclerView.adapter = SimpleItemRecyclerViewAdapter(this, itemList, twoPane)
     }
 
@@ -81,6 +83,7 @@ class ShopActivity : AppCompatActivity() {
             onClickListener = View.OnClickListener { v ->
                 val item = v.tag as Items
                 if (twoPane) {
+                    // clicking on the view items in the recycler in twopane mode puts the fragment next to the list on the same screen
                     val fragment = ItemDetailFragment().apply {
                         arguments = Bundle().apply {
                             putInt(ItemDetailFragment.ARG_ITEM_ID, item.id)
@@ -91,6 +94,7 @@ class ShopActivity : AppCompatActivity() {
                             .replace(R.id.item_detail_container, fragment)
                             .commit()
                 } else {
+                    // screen too small so start a new activity for the fragment (Item Detail Activity)
                     val intent = Intent(v.context, ItemDetailActivity::class.java).apply {
                         putExtra(ItemDetailFragment.ARG_ITEM_ID, item.id)
                     }
@@ -100,12 +104,14 @@ class ShopActivity : AppCompatActivity() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            // creates view holders for the items in the list
             val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_list_content, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            // setting up what to display about the Items
             val item = values[position]
             val price = "Price: ${item.cost} gold"
             holder.idView.text = item.name
@@ -114,13 +120,14 @@ class ShopActivity : AppCompatActivity() {
 
             with(holder.itemView) {
                 tag = item
-                setOnClickListener(onClickListener)
+                setOnClickListener(onClickListener) // allow this view to have the properties of the onclickListener defined above
             }
         }
 
-        override fun getItemCount() = values.size
+        override fun getItemCount() = values.size   // used in internal workings of the recycler
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            // assigns views in the layout to variables
             val idView: TextView = view.id_text
             val contentView: TextView = view.content
             val imageView : ImageView = view.imageView
@@ -129,36 +136,40 @@ class ShopActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // restore preferences
         preferencesFile = "MyPrefsFile${mAuth?.uid}"
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // use ”” as the default value (this might be the first time the app is run)
-        composeItemList()
+        composeItemList() // creates all possible items
         val items = settings.getString("AvailableItemList","")
         Log.d(tag, "[onStart] Restoring available item list is: $items")
-        if(items != ""){
+        if(items != ""){ // their exists available items or all available items have been bought
             items?.split(delimiters = *arrayOf("$"))?.forEach {id ->
-                avItemMap.forEach {
+                avItemMap.forEach{
+                    // if the key in the list matches an item in the hashmap then add it to the list to be displayed
+                    // in the recycler
                     if(it.key.id == id.toInt())
                         itemList.add(it.key)
                 }
             }
-        } else{
+        } else{ // first time setting up shop so use original items. These have a value of true in avItemMap
             avItemMap.forEach {
                 if(it.value){
                     itemList.add(it.key)
                 }
             }
         }
-        setupRecyclerView(Shop)
+        setupRecyclerView(Shop) // set up the recycler now that the data is ready
     }
 
     override fun onStop() {
         super.onStop()
+
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         var items = listOf<String>()
-        itemList.toSet().forEach {
+        itemList.toSet().forEach {// prevents duplicates
             items += it.id.toString()
         }
         editor.putString("AvailableItemList",items.joinToString("$"))
@@ -168,13 +179,15 @@ class ShopActivity : AppCompatActivity() {
 
     data class Items (val id : Int, val name : String){
         // class for items that can be bought in the shop for gold
-        var original = false
-        var cost  = 0 // cost of items in gold
-        var img = 0 //  resource int for the item picture\
-        var descrip = "" // description to display to user when describing item
+        var original = false // is this an original item or an upgrade of a previous item. Can be put into an array if more items added
+        var cost  = 0        // cost of items in gold
+        var img = 0          //  resource int for the item picture\
+        var descrip = ""     // description to display to user when describing item
     }
 
     private fun composeItemList(){
+        // everything to create items are in ordered typed arrays in Items.xml
+        // In this way a single index is all we need to completely create every aspect of an item.
         val names = resources.getStringArray(R.array.Names)
         val descrips = resources.getStringArray(R.array.Descriptions)
         val imgs = resources.obtainTypedArray(R.array.Images)
@@ -185,7 +198,7 @@ class ShopActivity : AppCompatActivity() {
             item.descrip = descrips[i]
             item.img = imgs.getResourceId(i,0)
             item.cost = costs[i]
-            if(i == 0 || i == 2 ){
+            if(i == 0 || i == 2 ){ // until more items are added we know exactly which two items are original
                 item.original = true
             }
             avItemMap[item] = item.original

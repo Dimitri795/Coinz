@@ -46,85 +46,93 @@ import kotlin.math.roundToInt
 class MainActivity : AppCompatActivity(),OnMapReadyCallback,
       LocationEngineListener,PermissionsListener{
 
-    private val tag = "MainActivity"
-    private var mapView: MapView? = null
-    private var map: MapboxMap? = null
-    private var mAuth : FirebaseAuth? = null
-    private var db : FirebaseFirestore? = null
+    private val tag = "MainActivity"           // tag for logging
+    private var mapView: MapView? = null       // the map view in our activity_main
+    private var map: MapboxMap? = null         // the actual map object
+    private var mAuth : FirebaseAuth? = null   // the Firebase authentication  variable
+    private var db : FirebaseFirestore? = null // the Firebase cloud storage variable
 
-    private lateinit var originLocation : Location
-    private lateinit var permissionsManager : PermissionsManager
-    private lateinit var locationEngine : LocationEngine
-    private lateinit var locationLayerPlugin : LocationLayerPlugin
-    private lateinit var locationLifecycle : Lifecycle
+    private lateinit var originLocation : Location                  // the current location to centre the map
+    private lateinit var permissionsManager : PermissionsManager    // handles permissions
+    private lateinit var locationEngine : LocationEngine            // handles location functionality
+    private lateinit var locationLayerPlugin : LocationLayerPlugin  // works with engine to handle functionality
+    private lateinit var locationLifecycle : Lifecycle              // makes a location object aware of the activity's lifecylce to prevent memory leaks
 
-    private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"
-    private var downloadDate = "" // Format: YYYY/MM/DD
-    private var wallet : CollectionReference? = null // firebase storage of collected coins
-    private var walletListener : ListenerRegistration? = null
-    private lateinit var preferencesFile : String // for storing preferences
+    private val mapUrl : String = "http://homepages.inf.ed.ac.uk/stg/coinz/"// the unchanging part of the map download url
+    private var downloadDate = ""                                           // Format: YYYY/MM/DD
+    private var wallet : CollectionReference? = null                        // firebase storage of collected coins
+    private var walletListener : ListenerRegistration? = null               // realtime update listener for querying wallet
+    private lateinit var preferencesFile : String                           // for storing preferences
 
-    private var fc : MutableList<Feature>? = null //daily feature collection list of features
-    private var markers = HashMap<String, Marker?>()
-    private var mapDrawn = false
-    private var newfc : MutableList<Feature>? = mutableListOf()
+    private var fc : MutableList<Feature>? = null               // daily feature collection list of features
+    private var markers = HashMap<String, Marker?>()            // hashmap linking markers drawn to feature IDs
+    private var mapDrawn = false                                // a boolean tracking if addmarkers() function has completed
+    private var newfc : MutableList<Feature>? = mutableListOf() // filtered version of the daily list of features
 
-    companion object {
+    companion object { // globally accessible companion to this activity.
+        // Firebase Collection and Document names to ensure consistent naming and easy renaming throughout code
         const val collection_key = "Users"
         const val subcollection_key = "Wallet"
         const val personalwalletdoc = "Personal Wallet"
         const val sendersdoc = "Senders"
-        var dailyFcData = "" //JsonData that was downloaded for the day
-        var collected : MutableList<String>? = mutableListOf() // list of collected coins
-        var walletSize = 25 // initial amount of coins that can be deposited daily
-        var coinReach = 25  // initial distance from within which you can collect a coin
+
+        var dailyFcData = ""                                   // JsonData that was downloaded for the day
+        var collected : MutableList<String>? = mutableListOf() // list of collected coins. Local version of Wallet on Firestore
+        var walletSize = 25                                    // initial amount of coins that can be deposited daily
+        var coinReach = 25                                     // initial distance from within which you can collect a coin
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mAuth = FirebaseAuth.getInstance()
+        mAuth = FirebaseAuth.getInstance()   // get the current instance of the Firebase Authentication linked to the app
         if(mAuth?.currentUser == null){
+            // If a user is not signed in the main activity will redirect to the login activity. Since the instance
+            // of an Authentication generally persists after the app is closed, this prevents regular users from having
+            // to login daily but still ensures first time users don't play the app before making an account.
             startActivity(Intent(this@MainActivity,LoginActivity::class.java))
         }
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main) // tells the app which layout to use
         setSupportActionBar(toolbar)
 
-        db = FirebaseFirestore.getInstance()
+        db = FirebaseFirestore.getInstance()  // get the current instance of the Firebase Firestore linked to the app
         // Use com.google.firebase.Timestamp objects instead of java.util.Date objects
         val settings = FirebaseFirestoreSettings.Builder()
                 .setTimestampsInSnapshotsEnabled(true).setPersistenceEnabled(false).build()
-        db?.firestoreSettings = settings
+        db?.firestoreSettings = settings      // apply the settings to the Firestore
         if(mAuth?.currentUser != null){
-            val docRef = db?.collection(collection_key)?.document(mAuth?.uid!!)
-            val crKey = ItemDetailActivity.coinReachKey
-            val wsKey = ItemDetailActivity.walletSizeKey
-            wallet = docRef?.collection(subcollection_key)
-            docRef?.get()?.addOnSuccessListener {
+            // If the current user is null, before the app starts the Login Activity, it continues carrying out lines of code briefly.
+            // My database uses user IDs as the document name to hold their data. Therefore if the current user is null the
+            // attempt to get a document reference will fail as mAuth?.uid!! is null
+            val docRef = db?.collection(collection_key)?.document(mAuth?.uid!!) // document reference for this specific user's data
+            val crKey = ItemDetailActivity.coinReachKey                                   // field name for storing the current Coin Reach.
+            val wsKey = ItemDetailActivity.walletSizeKey                                  // field name for storing the current Wallet Size
+            wallet = docRef?.collection(subcollection_key)                                       // Subcollection storing the collected coins
+            docRef?.get()?.addOnSuccessListener {             // retrieve data from a snapshot of the document
                 val doc = it.data!!
                 if(doc[crKey] != null){
-                    coinReach = (doc[crKey] as Long).toInt()
+                    coinReach = (doc[crKey] as Long).toInt()  // retrieve data from field Coin Reach if it exists
                 }
                 if(doc[wsKey] != null){
-                    walletSize = (doc[wsKey] as Long).toInt()
+                    walletSize = (doc[wsKey] as Long).toInt() // retrieve data from field Wallet Size if it exists
                 }
             }
         }
 
-
-        Mapbox.getInstance(this,getString(R.string.access_token))
+        Mapbox.getInstance(this,getString(R.string.access_token)) // get mapbox map using access token
         mapView = findViewById(R.id.mapboxMapView)
         mapView?.onCreate(savedInstanceState)
-        mapView?.getMapAsync(this)
+        mapView?.getMapAsync(this)                                // get the map as an async task
 
-        fab.setOnClickListener { _->
+        fab.setOnClickListener { _->   // Start Bank activity on click
             startActivity(Intent(this@MainActivity,BankActivity::class.java))
         }
-        fab2.setOnClickListener { _->
+        fab2.setOnClickListener { _->  // Start Shop activity on click
             startActivity(Intent(this@MainActivity,ShopActivity::class.java))
         }
     }
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
+        // mostly provided code by lecturer
         if (mapboxMap == null) {
             Log.d(tag, "[onMapReady] mapboxMap is null")
         } else {
@@ -134,11 +142,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             map?.uiSettings?.isZoomControlsEnabled = true
             // Make location information available
             enableLocation()
-            downloadFeatures()
+            downloadFeatures()  // function to start the download of the GeoJson
         }
     }
 
     private fun enableLocation() {
+        // code provided by the lecturer
         if (PermissionsManager.areLocationPermissionsGranted(this)) {
             Log.d(tag, "Permissions are granted")
             initialiseLocationEngine()
@@ -151,19 +160,21 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     private fun downloadFeatures(){
+        // gets current date and formats it so it can be used in the download of the GeoJson
         val current = LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         val currentFormatted = current.substring(0,4)+"/"+ current.substring(4,6)+"/"+ current.substring(6)
-        if(downloadDate != currentFormatted) {
-            downloadDate = currentFormatted
-            val dailyMap = "$mapUrl$downloadDate/coinzmap.geojson"
-            val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)
-            dailyFcData = myAsyncTask.execute(dailyMap).get()
-            map?.addSource(GeoJsonSource("geojson", dailyFcData))
-            wallet?.document(personalwalletdoc)?.delete() // day has changed so empty wallet and begin anew
-            collected?.clear()
+        if(downloadDate != currentFormatted) {                        // if current date is different than the stored download date then it's a new day
+            downloadDate = currentFormatted                           // save new date to prevent re-download in future uses of app today
+            val dailyMap = "$mapUrl$downloadDate/coinzmap.geojson"    // piece together the URL where the GeoJson is
+            val myAsyncTask = DownloadFileTask(DownloadCompleteRunner)// Make a new Async Task
+            dailyFcData = myAsyncTask.execute(dailyMap).get()         // Execute the download of the URL Asynchronously. Result is Json String
+            map?.addSource(GeoJsonSource("geojson", dailyFcData))  // Add Json to map
+            wallet?.document(personalwalletdoc)?.delete()             // day has changed so empty wallet and begin anew
+            collected?.clear()                                        // similarly clear the local version of the wallet
         }
-        fc = FeatureCollection.fromJson(dailyFcData).features()
-        addMarkers(fc)
+        fc = FeatureCollection.fromJson(dailyFcData).features()       // Extract the features
+        addMarkers(fc)                                                // Put features on map as markers
+        // set the text view of the Coin to Gold Rate key in content_main.xml
         shilRate.text = "${getGold("SHIL").roundToInt()} gold"
         dolrRate.text = "${getGold("DOLR").roundToInt()} gold"
         penyRate.text = "${getGold("PENY").roundToInt()} gold"
@@ -171,6 +182,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     private fun addMarkers(fc : MutableList<Feature>?){
+        // Filters list of features by the ones already collected to prevent re-drawing
         newfc = fc?.filterNot{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
         newfc?.forEach {
             val coinCoord = it.geometry() as Point
@@ -181,8 +193,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             val coinSymbol = it.getStringProperty("marker-symbol")
             // getting coin value in gold and rounded
             val goldVal = (getGold(coinTitle)*coinVal).roundToInt().toString()
-            //setting icon based on colour
+            //setting icon based on colour and currency
             val mycon = makeIcon(coinColour,coinSymbol)
+            // add markers to map and then store markers drawn in the hashmap with the coin ID as the key. Helps removal later
             markers[it.getStringProperty("id")] = map?.addMarker(MarkerOptions().title(coinTitle).snippet("$goldVal gold")
             .icon(mycon).position(coinPos))
         }
@@ -190,13 +203,15 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     fun getGold(currency : String) : Double {
+        // Turns the Json string to an object to single out the rates section and then turns that to an object to translate it.
        return JSONObject("${JSONObject(dailyFcData).get("rates")}").getDouble(currency)
     }
 
     private fun makeIcon(colour: String, symbol: String): Icon{
         lateinit var myIcon : Icon
-        val ifact = IconFactory.getInstance(this@MainActivity)
+        val ifact = IconFactory.getInstance(this@MainActivity) // get an instance of an IconFactory
         when(colour){
+            // Icons stored in xml file as typed arrays. Currency is the array's index and the arrays are separated by colour
             "#ff0000" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.RedMarkers).getResourceId(symbol.toInt(),R.drawable.redmarker0))
             "#0000ff" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.BlueMarkers).getResourceId(symbol.toInt(),R.drawable.bluemarker0))
             "#ffdf00" -> myIcon = ifact.fromResource(resources.obtainTypedArray(R.array.YellowMarkers).getResourceId(symbol.toInt(),R.drawable.yelmarker0))
@@ -207,6 +222,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationEngine() {
+        // code provided by lecturer
         locationEngine = LocationEngineProvider(this)
                 .obtainBestLocationEngineAvailable()
         locationEngine.apply {
@@ -224,6 +240,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationLayer() {
+        // code provided by lecturer except lines with comments
         if (mapView == null) { Log.d(tag, "mapView is null") }
         else {
             if (map == null) { Log.d(tag, "map is null") }
@@ -235,6 +252,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
                 }
+                // Gives a lifecycle of the activity and tell the location layer plugin observe it and respond to changes in it
+                // This allows it to react properly onPause,Stop, or Destroy without explicitly being told
                 locationLifecycle = lifecycle
                 locationLifecycle.addObserver(locationLayerPlugin)
             }
@@ -242,50 +261,59 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     private fun setCameraPosition(location: Location) {
+        // code provided by lecturer
         val latlng = LatLng(location.latitude, location.longitude)
         map?.animateCamera(CameraUpdateFactory.newLatLng(latlng))
     }
 
     override fun onLocationChanged(location: Location?) {
+        // code provided by lecturer except commented lines
         if (location == null) {
             Log.d(tag, "[onLocationChanged] location is null")
         } else {
             originLocation = location
             setCameraPosition(originLocation)
             if(mapDrawn){
+                // if features have been drawn on map then you can begin collecting coins
                 collectCoin()
             }
         }
     }
 
     private fun collectCoin(){
+        // once again filter fc by removing coins already collected
         newfc = fc?.filterNot{collected?.contains(it.getStringProperty("id"))!!} as MutableList<Feature>?
         newfc?.forEach {
             val coinCoord = it.geometry() as Point
             val coinLoc = Location(LocationManager.GPS_PROVIDER).apply {
+                // convert coin lat and long to a location which can be compared
                 latitude = coinCoord.latitude()
                 longitude = coinCoord.longitude()
             }
             if (originLocation.distanceTo(coinLoc) <= coinReach) {
+                // coin is within the distance from which it can be collected
                 val id = it.getStringProperty("id")
-                collected?.add(id)
+                collected?.add(id) // add coin to local list of collected coins
                 val data = HashMap<String,String>()
                 data[id] = it.toJson()
+                // add it to Firestore wallet as a map with the ID as the key and the full coin as the data
                 wallet?.document(personalwalletdoc)?.set(data as Map<String, Any>, SetOptions.merge())
+                // celebratory toast to user
                 makeToast("Collected a ${it.getStringProperty("currency")} ${it.getStringProperty("marker-symbol")} coin!")
-                map?.removeMarker(markers[id]!!)
+                map?.removeMarker(markers[id]!!) // remove the coin's associated marker from the map.
             }
         }
     }
 
     @SuppressWarnings("MissingPermission")
     override fun onConnected() {
+        // code provided by lecturer
         Log.d(tag, "[onConnected] requesting location updates")
         locationEngine.requestLocationUpdates()
     }
 
-    override fun onExplanationNeeded(permissionsToExplain:
-                                     MutableList<String>?) {
+    override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {
+        // code provided by lecturer
         Log.d(tag, "Permissions: $permissionsToExplain")
         // Present popup message or dialog
         makeToast("This app requires permission to access your " +
@@ -293,6 +321,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     override fun onPermissionResult(granted: Boolean) {
+        // code provided by lecturer
         Log.d(tag, "[onPermissionResult] granted == $granted")
         if (granted) {
             enableLocation()
@@ -304,6 +333,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // code provided by lecturer
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
@@ -316,6 +346,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         return when (item.itemId) {
             R.id.action_settings -> true
             R.id.sign_out -> {
+                // Allow user to sign out of the App and redirects back to Login activity
                 mAuth?.signOut()
                 makeToast("Sign out successful")
                 startActivity(Intent(this@MainActivity,LoginActivity::class.java))
@@ -328,7 +359,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStart() {
         super.onStart()
         mapView?.onStart()
-        // Restore preferences
+        // Restore preferences from shared preferences file
         preferencesFile = "MyPrefsFile${mAuth?.uid}"
         Log.d(tag, "Preference file is $preferencesFile")
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
@@ -337,8 +368,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         dailyFcData = settings.getString("DailyCoinData","")!!
         val colcCoins = settings.getString("CollectedCoinList","")
         if(colcCoins != ""){
+            // if the string for collected coins isn't empty then split it back to a list of strings
             collected = colcCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toSet()?.toMutableList()
         } else {
+            // string is empty so get collected coins from the Firebase wallet instead. Slower than above.
             walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener { docSnap, e ->
                 when {
                     e != null -> Log.d(tag, e.message)
@@ -346,25 +379,28 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                         collected?.addAll(docSnap.data!!.keys)
                         collected?.asSequence()?.toSet()?.toMutableList()
                         Log.d(tag, "Snapshot listen successful")
+                        // slow access sometimes so map may need to be updated after data is accessed to remove markers that were redrawn
                         updateMap()
                     }
                 }
             }
         }
-
         Log.d(tag, "[onStart] Recalled Last Download Date is $downloadDate")
         Log.d(tag, "[onStart] Recalled Daily Coin list")
         Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
-
     }
+
     private fun updateMap(){
+        // filter fc to get list of collected coins
         val newFc = fc?.filter { collected?.contains(it.getStringProperty("id"))!! } as MutableList<Feature>?
         newFc?.forEach {
             if(markers[it.getStringProperty("id")] != null){
+                // if there's a hashmap entry for that key then the marker was redrawn so remove it
                 map?.removeMarker(markers[it.getStringProperty("id")]!!)
             }
         }
     }
+
     public override fun onResume() {
         super.onResume()
         mapView?.onResume()
@@ -378,8 +414,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
     public override fun onStop() {
         super.onStop()
         mapView?.onStop()
-        walletListener?.remove()
+        walletListener?.remove() // remove listener since activity is stopping. Prevents memory leaks
         if(::locationEngine.isInitialized){
+            // the engine is initialized during the running of the activity not onStart so it's possible to call onStop with it uninitialized
+            // can't perform the following if it's uninitialized
             locationEngine.removeLocationEngineListener(this)
             locationEngine.removeLocationUpdates()
         }
@@ -394,7 +432,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
-        editor.putString("CollectedCoinList", collected?.joinToString("$"))
+        editor.putString("CollectedCoinList", collected?.joinToString("$")) // turn list to a single string for easy storage
         // Apply the edits!
         editor.apply()
     }
@@ -415,8 +453,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
             mapView?.onSaveInstanceState(outState)
         }
     }
-    // Helper function to make writing toasts faster/less wordy
+
     private fun makeToast(msg : String){
+        // Helper function to make writing toasts faster/less wordy
         Toast.makeText(this@MainActivity,msg,Toast.LENGTH_SHORT).show()
     }
 

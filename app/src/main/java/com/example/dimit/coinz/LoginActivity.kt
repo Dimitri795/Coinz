@@ -4,29 +4,27 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_login.*
 
 //Implementation adapted from https://github.com/firebase/quickstart-android and slides
 class LoginActivity : AppCompatActivity() {
 
-    private val tag = "LoginActivity"
-    private var mAuth : FirebaseAuth? = null
-    private var db : FirebaseFirestore? = null
+    private val tag = "LoginActivity"          // tag used for logging
+    private var mAuth : FirebaseAuth? = null   // the Firebase authentication  variable
+    private var db : FirebaseFirestore? = null // the Firebase cloud storage  variable
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
-        mAuth = FirebaseAuth.getInstance()
-        db = FirebaseFirestore.getInstance()
+        setContentView(R.layout.activity_login) // tells the app which layout to use
+        mAuth = FirebaseAuth.getInstance()      // get the current instance of the Firebase Authentication linked to the app
+        db = FirebaseFirestore.getInstance()    // get the current instance of the Firebase cloud storage linked to the app
 
-        skipButton.setOnClickListener {signIn("admin@example.com", "adminexample")}
-
+        skipButton.setOnClickListener {signIn("admin@example.com", "adminexample")} // skip button for quick testing
+        // linked buttons to corresponding functions
         emailSignInButton.setOnClickListener { signIn(fieldEmail.text.toString(), fieldPassword.text.toString()) }
         emailCreateAccountButton.setOnClickListener { createAccount(fieldEmail.text.toString(), fieldPassword.text.toString()) }
     }
@@ -41,19 +39,17 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun createAccount(email : String,password : String){
+        // uses firebase function to create new user with email and password
         mAuth?.createUserWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
                         // Sign in success, update UI with user info
                         Log.d(tag, "createUserWithEmailAndPassword:success")
                         makeToast("Welcome To Coinz")
-                        //Experimenting With allowing users to have displaynames
-                        /*val user = mAuth?.currentUser
-                        val profileUpdates = UserProfileChangeRequest.Builder()
-                                .setDisplayName("bob").build()
-                        user?.updateProfile(profileUpdates)*/
                         val user = HashMap<String,Any>()
-                        user["UserName"] = fieldEmail.text.toString().substringBefore('@')
+                        //user["UserName"] = fieldEmail.text.toString().substringBefore('@') - May remove, not used
+                        // Initializes user document with email and gold count. Email is how we will uniquely identify users for sending coins
+                        // unless I implement a unique username field
                         user["Email"] = fieldEmail.text.toString()
                         user["GoldCount"] = 0
                         db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
@@ -72,6 +68,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun signIn(email : String, password: String){
+        // uses firebase function to sign in using email and password
         mAuth?.signInWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
@@ -90,15 +87,13 @@ class LoginActivity : AppCompatActivity() {
 
     private fun updateUI(user : FirebaseUser?){
         if (user != null) {
+            // if a user is signed in start the Main activity
            startActivity(Intent(this@LoginActivity,MainActivity::class.java))
-        } else {
-            //do later
-            emailPasswordButtons.visibility = View.VISIBLE
-            emailPasswordFields.visibility = View.VISIBLE
         }
     }
 
     private fun makeToast(msg : String){
+        // helper function for making writing of toasts shorter.
         Toast.makeText(this@LoginActivity,msg,Toast.LENGTH_LONG).show()
     }
 }

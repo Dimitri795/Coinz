@@ -17,27 +17,36 @@ import kotlin.math.roundToInt
 
 class TradeFragment : Fragment() {
 
-    private var activityCallback : TradeFragment.OnFragInteractionListener? = null
-    private var db : FirebaseFirestore? = null
+    private var activityCallback : TradeFragment.OnFragInteractionListener? = null // Fragment listener interface
+    private var db : FirebaseFirestore? = null                                     // Firebase cloud storage variable
+
+    companion object { //globablly accessible companion to this Fragment
+        const val ARG_ITEM_ID = "item_id"  // the key for the arguments bundle
+        var senderEmail = ""               // the email of the trade maker
+    }
 
     interface OnFragInteractionListener{
+        // define an interface that the TradeActivity can extend so that methods in this Fragment can be implemented in the activity
         fun makeTrade(rec: String,frag: Fragment,doc: DocumentSnapshot)
     }
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
         try{
+            // when attached to an activity ensure it extends the interface
             activityCallback = context as OnFragInteractionListener
         }catch (e : ClassCastException){
+            // error if the activity doesn't
             throw ClassCastException("${context?.toString()} must implement OnFragInteractionListener")
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        db = FirebaseFirestore.getInstance()
+        db = FirebaseFirestore.getInstance() // get the current instance of the Firebase cloud storage linked to the app
         arguments?.let {
             if (it.containsKey(ARG_ITEM_ID)) {
+                // Get relevant details of the coin to display as the header for the trade. In case users forget which coin they are trading.
                 val item = Feature.fromJson(it.getString(ARG_ITEM_ID)!!)
                 val coinTitle = item.getStringProperty("currency")
                 val coinVal = item.getStringProperty("value")?.toDouble()
@@ -46,6 +55,7 @@ class TradeFragment : Fragment() {
                 activity?.toolbar_layout?.title = displayText
             }
             if(it.containsKey("email")){
+                // get the trader's email
                 senderEmail = it.getString("email")!!
             }
         }
@@ -54,32 +64,29 @@ class TradeFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+        // create the view to hold the text fields and button
         val rootview = inflater.inflate(R.layout.trade_view, container, false)
 
         rootview.trade_view.tradeButton.setOnClickListener {
+            // A trade is being made, validate it and then pass it back to TradeActivity via the interface
             makeTrade(rootview.trade_view.fieldEmail.text.toString(),this) }
 
         return rootview
     }
 
     private fun makeTrade(rec :String,frag: Fragment){
-        if (rec != senderEmail) {
+        if (rec != senderEmail) { // Can't send coins to yourself
             db?.collection(MainActivity.collection_key)?.whereEqualTo("Email",rec)?.get()?.addOnSuccessListener { it ->
+                // Make sure the subject of the trade is an actual user of the app
                 if(!it.isEmpty){
-                    activityCallback?.makeTrade(rec, frag,it.documents.first())
-                } else{
+                    activityCallback?.makeTrade(rec, frag,it.documents.first()) // implement the validated trade in TradeActivity
+                } else{ // error message
                     Toast.makeText(this.context,"That email does not belong to another player",Toast.LENGTH_SHORT).show()
                 }
             }
-        } else{
+        } else{ // error message
             Toast.makeText(this.context,"You can't send coins to yourself!",Toast.LENGTH_SHORT).show()
         }
     }
 
-
-    companion object {
-        const val ARG_ITEM_ID = "item_id"
-        const val tag = "TradeFragment"
-        var senderEmail = ""
-    }
 }

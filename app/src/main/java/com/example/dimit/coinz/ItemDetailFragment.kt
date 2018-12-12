@@ -10,13 +10,15 @@ import kotlinx.android.synthetic.main.item_detail.view.*
 
 class ItemDetailFragment : Fragment() {
 
-    private var item : ShopActivity.Items? = null
+    private var item : ShopActivity.Items? = null  // Item, a data class defined in ShopActivity
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         arguments?.let {
             if (it.containsKey(ARG_ITEM_ID)) {
+                // use arguments to construct a new Item object and display it's details to the user.
+                // everything item related is stored in typed arrays in the Items.xml file
                 val i = it.getInt(ARG_ITEM_ID)
                 val name = resources.getStringArray(R.array.Names)[i]
                 val descrip = resources.getStringArray(R.array.Descriptions)[i]

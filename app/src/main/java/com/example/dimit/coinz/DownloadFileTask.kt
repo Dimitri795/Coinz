@@ -6,7 +6,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-
+// code provided by lecturer
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
 }
