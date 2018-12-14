@@ -2,9 +2,7 @@ package com.example.dimit.coinz
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
-
 import kotlinx.android.synthetic.main.activity_tutorial.*
 
 class TutorialActivity : AppCompatActivity() {
@@ -14,7 +12,7 @@ class TutorialActivity : AppCompatActivity() {
         setContentView(R.layout.activity_tutorial)
         setSupportActionBar(toolbar)
 
-        fab.setOnClickListener { view ->
+        fab.setOnClickListener { _ ->
             startActivity(Intent(this@TutorialActivity,MainActivity::class.java))
         }
     }
