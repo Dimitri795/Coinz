@@ -37,7 +37,7 @@ class TradeActivity : AppCompatActivity(),TradeFragment.OnFragInteractionListene
                 arguments = Bundle().apply {
                     putString(TradeFragment.ARG_ITEM_ID,
                             intent.getStringExtra(TradeFragment.ARG_ITEM_ID))
-                    putString("email",mAuth?.currentUser?.email)
+                    putString("username",mAuth?.currentUser?.displayName)
                 }
             }
             supportFragmentManager.beginTransaction()
@@ -70,13 +70,13 @@ class TradeActivity : AppCompatActivity(),TradeFragment.OnFragInteractionListene
                 ?.addOnSuccessListener{ Log.d(tag,"Document SnapShot added with ID: $recId and gold: ${BankActivity.tradeGold +gold}") }
                 ?.addOnFailureListener{ Log.d(tag,"Error adding document",it) }
         val sender = HashMap<String,Any>()
-        sender[mAuth?.currentUser?.email!!+"$"+traded.toString()] = traded
+        sender[mAuth?.currentUser?.displayName!!+"$"+traded.toString()] = traded
         // keep a track of the sender so users can see who sent them a coin and possibly return the favour!
         db?.collection(colKey)?.document(recId)?.collection(MainActivity.subcollection_key)?.document(MainActivity.sendersdoc)
                 ?.set(sender, SetOptions.merge())
                 ?.addOnSuccessListener{ Log.d(tag,"Document SnapShot added with ID: $recId and sender: $sender") }
                 ?.addOnFailureListener{ Log.d(tag,"Error adding document",it) }
-        Toast.makeText(this,"Coin sent to email: $rec",Toast.LENGTH_SHORT).show()
+        Toast.makeText(this,"Coin sent to user: $rec",Toast.LENGTH_SHORT).show()
         supportFragmentManager.beginTransaction().remove(frag).commit()   // remove the trade fragment now that the trade is complete
         navigateUpTo(Intent(this, BankActivity::class.java)) // return to the Bank activity
         BankActivity.tradeValid = true                                    // register the trade as successful

@@ -62,15 +62,20 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.dimit.coinz.ShopActivity" />
         </activity>
-        <activity android:name=".ChatActivity"
+        <activity
+            android:name=".ChatActivity"
             android:label="Chat"
             android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
-        <meta-data
-            android:name="android.support.PARENT_ACTIVITY"
-            android:value="com.example.dimit.coinz.MainActivity" />
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.dimit.coinz.MainActivity" />
         </activity>
-
+        <activity
+            android:name=".TutorialActivity"
+            android:label="Tutorial"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".UsernameActivity"/>
     </application>
 
 </manifest>

@@ -21,4 +21,20 @@
     <string name="send_spare_change">Send Spare Change</string>
     <string name="message">Message:</string>
     <string name="send_message">Send Message</string>
+    <string name="title_activity_tutorial">TutorialActivity</string>
+    <string name="username">Username</string>
+    <string name="set_username">Set Username</string>
+    <string name="enter_username">Enter Username:</string>
+    <string name="tutorial1">WELCOME!  This is Coinz. The only way for the capitalist of tomorrow to spend today!Is this your first time playing? Or maybe you just needed a refresher? Then this tutorial will get you out collecting coinz in no time!</string>
+    <string name="shil">SHIL</string>
+    <string name="dolr">DOLR</string>
+    <string name="peny">PENY</string>
+    <string name="quid">QUID</string>
+    <string name="tutorial2">Above are the four coinz you\'ll collect daily. Initially you have to be within 25 metres of a coin to collect it.Each has a different daily rate that the Bank will pay you in gold if you deposit them. This rate can be seen in the top right-hand corner of your map.</string>
+    <string name="play_game">Play Game</string>
+    <string name="banktutorial">The Bank - This shows currently collected coins and total gold. You can only deposit 25 coins daily. You can send coins to friends at any time. Coins received from other players are instantly deposited into your account and are not affected by your daily deposit limit.</string>
+    <string name="shoptutorial">The Shop - Here you can buy helpful items that can make collecting and depositing coins easier!</string>
+    <string name="chattutorial">The Chat - Here you can chat to other users and make friends to trade coins with!</string>
+    <string name="tutorial3">Lastly, you can sign out of the game or rewatch this tutorial at anytime from the menu in the Map. Now you know the basics, go out there and make some MONEY!</string>
+    <string name="tutorial">Tutorial</string>
 </resources>

@@ -347,7 +347,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.tutorial -> {
+                //Rewatch tutorial
+                startActivity(Intent(this@MainActivity,TutorialActivity::class.java))
+                true
+            }
             R.id.sign_out -> {
                 // Allow user to sign out of the App and redirects back to Login activity
                 mAuth?.signOut()
@@ -355,6 +359,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 startActivity(Intent(this@MainActivity,LoginActivity::class.java))
                 true
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }

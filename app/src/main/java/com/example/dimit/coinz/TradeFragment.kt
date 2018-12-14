@@ -22,7 +22,7 @@ class TradeFragment : Fragment() {
 
     companion object { //globablly accessible companion to this Fragment
         const val ARG_ITEM_ID = "item_id"  // the key for the arguments bundle
-        var senderEmail = ""               // the email of the trade maker
+        var senderName = ""               // the username of the trade maker
     }
 
     interface OnFragInteractionListener{
@@ -54,9 +54,9 @@ class TradeFragment : Fragment() {
                 val displayText = "$coinTitle ${item.getStringProperty("marker-symbol")} Worth: $goldVal"
                 activity?.toolbar_layout?.title = displayText
             }
-            if(it.containsKey("email")){
-                // get the trader's email
-                senderEmail = it.getString("email")!!
+            if(it.containsKey("username")){
+                // get the trader's username
+                senderName = it.getString("username")!!
             }
         }
 
@@ -75,13 +75,13 @@ class TradeFragment : Fragment() {
     }
 
     private fun makeTrade(rec :String,frag: Fragment){
-        if (rec != senderEmail) { // Can't send coins to yourself
-            db?.collection(MainActivity.collection_key)?.whereEqualTo("Email",rec)?.get()?.addOnSuccessListener { it ->
+        if (rec != senderName) { // Can't send coins to yourself
+            db?.collection(MainActivity.collection_key)?.whereEqualTo(ChatActivity.nameField,rec)?.get()?.addOnSuccessListener { it ->
                 // Make sure the subject of the trade is an actual user of the app
                 if(!it.isEmpty){
                     activityCallback?.makeTrade(rec, frag,it.documents.first()) // implement the validated trade in TradeActivity
                 } else{ // error message
-                    Toast.makeText(this.context,"That email does not belong to another player",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this.context,"That username does not belong to another player",Toast.LENGTH_SHORT).show()
                 }
             }
         } else{ // error message

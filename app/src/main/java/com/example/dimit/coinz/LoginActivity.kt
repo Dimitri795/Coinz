@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_login.*
 
@@ -16,6 +17,9 @@ class LoginActivity : AppCompatActivity() {
     private val tag = "LoginActivity"          // tag used for logging
     private var mAuth : FirebaseAuth? = null   // the Firebase authentication  variable
     private var db : FirebaseFirestore? = null // the Firebase cloud storage  variable
+    private var newUser = false                // if this is a first time user
+    private val emailField = "Email"           // email field of database named here for easy change
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,15 +51,15 @@ class LoginActivity : AppCompatActivity() {
                         Log.d(tag, "createUserWithEmailAndPassword:success")
                         makeToast("Welcome To Coinz")
                         val user = HashMap<String,Any>()
-                        // Initializes user document with email, username and gold count.
-                        user["UserName"] = fieldEmail.text.toString().substringBefore('@') // may be moved to a new activity
-                        user["Email"] = fieldEmail.text.toString()
-                        user["GoldCount"] = 0
-                        db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
+                        // Initializes user document with email and gold count.
+                        user[emailField] = fieldEmail.text.toString()
+                        user[BankActivity.goldkey] = 0
+                        db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user)?.addOnSuccessListener{
                             Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid}")
                         }?.addOnFailureListener {
                             Log.d(tag,"Error adding document",it)
                         }
+                        newUser = true
                         updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
@@ -86,8 +90,13 @@ class LoginActivity : AppCompatActivity() {
 
     private fun updateUI(user : FirebaseUser?){
         if (user != null) {
-            // if a user is signed in start the Main activity
-           startActivity(Intent(this@LoginActivity,MainActivity::class.java))
+            // if a user is signed in, start the Main activity
+           if(newUser){ // new users first pick a unique username and then read the tutorial
+               newUser = false
+               startActivity(Intent(this@LoginActivity,UsernameActivity::class.java))
+           } else{ // returning users skip the tutorial and should already have a username
+               startActivity(Intent(this@LoginActivity,MainActivity::class.java))
+           }
         }
     }
 

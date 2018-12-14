@@ -27,7 +27,7 @@ class ChatActivity:AppCompatActivity() {
         private const val tag = "ChatActivity"
         private const val colKey = "Chat"
         private const val dockey = "Message"
-        private const val nameField = "UserName"
+        const val nameField = "UserName"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,15 +42,11 @@ class ChatActivity:AppCompatActivity() {
         val settings = FirebaseFirestoreSettings.Builder()
                 .setTimestampsInSnapshotsEnabled(true).setPersistenceEnabled(false).build()
         db?.firestoreSettings = settings      // apply the settings to the Firestore
-        val doc = db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)
-        doc?.get()?.addOnSuccessListener { snap ->
-            // get the username of the message sender and allow them to send messages
-            if(snap.exists()){
-                username = snap.data!![nameField] as String
-                sendMessageButton.setOnClickListener { sendMessage()}
-            }
-        }
+
+        username = mAuth?.currentUser?.displayName!!
         fChat = db?.collection(colKey)?.document(dockey)
+
+        sendMessageButton.setOnClickListener { sendMessage()}
         realTimeUpdateListener() // set a listener for changes to Chat/Message document
 
         // Show the Up button in the action bar
