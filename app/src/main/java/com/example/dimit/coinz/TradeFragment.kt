@@ -69,7 +69,7 @@ class TradeFragment : Fragment() {
 
         rootview.trade_view.tradeButton.setOnClickListener {
             // A trade is being made, validate it and then pass it back to TradeActivity via the interface
-            makeTrade(rootview.trade_view.fieldEmail.text.toString(),this) }
+            makeTrade(rootview.trade_view.fieldUsername.text.toString(),this) }
 
         return rootview
     }
