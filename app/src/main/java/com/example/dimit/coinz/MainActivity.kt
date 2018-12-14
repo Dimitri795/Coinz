@@ -129,6 +129,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         fab2.setOnClickListener { _->  // Start Shop activity on click
             startActivity(Intent(this@MainActivity,ShopActivity::class.java))
         }
+        fab3.setOnClickListener { _->  // Start Shop activity on click
+            startActivity(Intent(this@MainActivity,ChatActivity::class.java))
+        }
     }
 
     override fun onMapReady(mapboxMap: MapboxMap?) {

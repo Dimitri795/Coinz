@@ -47,9 +47,8 @@ class LoginActivity : AppCompatActivity() {
                         Log.d(tag, "createUserWithEmailAndPassword:success")
                         makeToast("Welcome To Coinz")
                         val user = HashMap<String,Any>()
-                        //user["UserName"] = fieldEmail.text.toString().substringBefore('@') - May remove, not used
-                        // Initializes user document with email and gold count. Email is how we will uniquely identify users for sending coins
-                        // unless I implement a unique username field
+                        // Initializes user document with email, username and gold count.
+                        user["UserName"] = fieldEmail.text.toString().substringBefore('@') // may be moved to a new activity
                         user["Email"] = fieldEmail.text.toString()
                         user["GoldCount"] = 0
                         db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user as Map<String, Any>)?.addOnSuccessListener{
