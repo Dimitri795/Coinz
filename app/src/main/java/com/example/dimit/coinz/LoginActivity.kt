@@ -54,12 +54,12 @@ class LoginActivity : AppCompatActivity() {
                         user[emailField] = fieldEmail.text.toString()
                         user[BankActivity.goldkey] = 0
                         db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user)?.addOnSuccessListener{
+                            newUser = true
+                            updateUI(mAuth?.currentUser)
                             Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid}")
                         }?.addOnFailureListener {
                             Log.d(tag,"Error adding document",it)
                         }
-                        newUser = true
-                        updateUI(mAuth?.currentUser)
                     } else {
                         // Sign in failed, display a message to the user
                         Log.w(tag, "createUserWithEmailAndPassword:failure", task.exception)

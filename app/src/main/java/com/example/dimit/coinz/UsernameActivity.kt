@@ -8,6 +8,7 @@ import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.android.synthetic.main.activity_username.*
 
 class UsernameActivity : AppCompatActivity(){
@@ -39,7 +40,7 @@ class UsernameActivity : AppCompatActivity(){
                 // add it to user's database to be able to query the database by username
                 val user = HashMap<String,Any>()
                 user[ChatActivity.nameField] = username
-                db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user)?.addOnSuccessListener{
+                db?.collection(MainActivity.collection_key)?.document(mAuth?.uid!!)?.set(user, SetOptions.merge())?.addOnSuccessListener{
                     Log.d(tag,"Document SnapShot added with ID: ${mAuth?.uid}")
                 }?.addOnFailureListener {
                     Log.d(tag,"Error adding document",it)

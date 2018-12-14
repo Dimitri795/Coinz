@@ -3,6 +3,7 @@ package com.example.dimit.coinz
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import android.support.v4.app.NavUtils
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
@@ -130,6 +131,7 @@ class BankActivity : AppCompatActivity() {
 
             with(holder.itemView) {
                 tag = item
+                var mLastClickTime : Long = 0
 
                 if(dailyLimit>= MainActivity.walletSize){
                     // if deposit limit is reached changed view so that users can only send spare change
@@ -151,8 +153,13 @@ class BankActivity : AppCompatActivity() {
                     tradeCoin(item)
                     tradeItemId = item.getStringProperty("id")
                 }
-                depositButton.setOnClickListener {
+                depositButton.setOnClickListener{
                     // deposits a coin and removes it from the list
+                    // mis-clicking prevention, using threshold of 1000 ms
+                    if (SystemClock.elapsedRealtime() - mLastClickTime < 1000){
+                        return@setOnClickListener
+                    }
+                    mLastClickTime = SystemClock.elapsedRealtime()
                     addGold(goldVal)
                     removeItem(holder.adapterPosition,item.getStringProperty("id")) }
             }
@@ -176,11 +183,6 @@ class BankActivity : AppCompatActivity() {
 
             BankActivity.used?.add(id)  // adds coin to the used coins list
             Log.d(this.parentActivity.tag,"Used coins ${BankActivity.used}")
-//            val updates = HashMap<String, Any>()
-//            updates[id] = FieldValue.delete()
-//            BankActivity.goldCount?.collection(MainActivity.subcollection_key)?.document(MainActivity.personalwalletdoc)?.update(updates)
-//                    ?.addOnCompleteListener { Log.d(this.parentActivity.tag,"Deleted Coin with id : $id") }
-//                    ?.addOnFailureListener { Log.d(this.parentActivity.tag,"Error updating document",it) }
         }
 
         private fun addGold(gold : Int){
@@ -240,11 +242,6 @@ class BankActivity : AppCompatActivity() {
             // a trade was successful so add the traded coin to the used coin list
             used?.add(tradeItemId)
             tradeValid = false
-//            val updates = HashMap<String, Any>()
-//            updates[tradeItemId] = FieldValue.delete()
-//            goldCount?.collection(MainActivity.subcollection_key)?.document(MainActivity.personalwalletdoc)?.update(updates)
-//                    ?.addOnCompleteListener { Log.d(tag,"Deleted Coin with id : $tradeItemId") }
-//                    ?.addOnFailureListener { Log.d(tag,"Error updating document",it) }
         }
         Log.d(tag,"[On Start] Restoring daily limit of $dailyLimit")
         Log.d(tag,"[On Start] Restoring used coin list of $used")

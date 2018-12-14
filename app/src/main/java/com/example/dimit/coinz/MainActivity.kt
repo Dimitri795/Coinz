@@ -374,28 +374,25 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         // use ”” as the default value (this might be the first time the app is run)
         downloadDate = settings.getString("lastDownloadDate", "")!!
         dailyFcData = settings.getString("DailyCoinData","")!!
-        val colcCoins = settings.getString("CollectedCoinList","")
-        if(colcCoins != ""){
-            // if the string for collected coins isn't empty then split it back to a list of strings
-            collected = colcCoins?.split(delimiters = *arrayOf("$"))?.asSequence()?.toSet()?.toMutableList()
-        } else {
-            // string is empty so get collected coins from the Firebase wallet instead. Slower than above.
-            walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener { docSnap, e ->
-                when {
-                    e != null -> Log.d(tag, e.message)
-                    docSnap != null && docSnap.exists() -> {
-                        collected?.addAll(docSnap.data!!.keys)
-                        collected?.asSequence()?.toSet()?.toMutableList()
-                        Log.d(tag, "Snapshot listen successful")
-                        // slow access sometimes so map may need to be updated after data is accessed to remove markers that were redrawn
-                        updateMap()
-                    }
+
+        // get collected coins from the Firebase wallet instead. Kinda Slow
+        collected?.clear()
+        walletListener = wallet?.document(personalwalletdoc)?.addSnapshotListener { docSnap, e ->
+            when {
+                e != null -> Log.d(tag, e.message)
+                docSnap != null && docSnap.exists() -> {
+                    collected?.addAll(docSnap.data!!.keys)
+                    collected?.asSequence()?.toSet()?.toMutableList()
+                    Log.d(tag, "Snapshot listen successful")
+                    Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
+                    // slow access sometimes so map may need to be updated after data is accessed to remove markers that were redrawn
+                    updateMap()
                 }
             }
         }
+
         Log.d(tag, "[onStart] Recalled Last Download Date is $downloadDate")
         Log.d(tag, "[onStart] Recalled Daily Coin list")
-        Log.d(tag, "[onStart] Recalled Collected Coin List is $collected")
     }
 
     private fun updateMap(){
@@ -433,14 +430,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         Log.d(tag, "Writing to Preferences file $preferencesFile")
         Log.d(tag, "[onStop] Storing Last Download Date of $downloadDate")
         Log.d(tag, "[onStop] Storing Daily Coin Data")
-        Log.d(tag, "[onStop] Storing Collected Coin List of $collected")
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
         editor.putString("lastDownloadDate", downloadDate)
         editor.putString("DailyCoinData", dailyFcData)
-        editor.putString("CollectedCoinList", collected?.joinToString("$")) // turn list to a single string for easy storage
         // Apply the edits!
         editor.apply()
     }
