@@ -20,6 +20,7 @@ class ChatActivity:AppCompatActivity() {
     private var chatList : ListenerRegistration? = null  // the real time listener to the chat
     private var username = ""                            // the user's username
     private var chatLimit = 20                           // the number of sentences of the chat to show
+    private val updates = HashMap<String, Any>()
 
     companion object  { // globally accessible companion to this Activity
         // firebase collection and document names
@@ -72,7 +73,6 @@ class ChatActivity:AppCompatActivity() {
     }
 
     private fun realTimeUpdateListener(){
-        val updates = HashMap<String, Any>()
         chatList = fChat?.addSnapshotListener{docSnap,e ->
             when{
                 e != null -> Log.e(tag,e.message) // if there's an error then log it
@@ -81,10 +81,10 @@ class ChatActivity:AppCompatActivity() {
                     with(docSnap){
                         var incoming = ""
                         var maxLines = 0
-                        data?.toSortedMap()?.forEach {
+                        data?.toSortedMap(reverseOrder())?.forEach {
                             val message = it.value as Map<*, *>
                             if(maxLines< chatLimit){
-                                incoming = "${message.keys.first()}: ${message.values.first()}\n" + incoming
+                                incoming += "${message.keys.first()}: ${message.values.first()}\n"
                                 maxLines++
                             } else{
                                 // anything not displayed is added to the HashMap updates for deletion to prevent clutter on database
@@ -96,10 +96,6 @@ class ChatActivity:AppCompatActivity() {
                 }
             }
         }
-        // delete the excess messages
-        fChat?.update(updates)
-                ?.addOnCompleteListener { Log.d(tag,"Deleted messages with timestamps ${updates.keys}") }
-                ?.addOnFailureListener { Log.d(tag,"Error updating document",it) }
     }
 
     override fun onOptionsItemSelected(item: MenuItem) =
@@ -115,5 +111,9 @@ class ChatActivity:AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         chatList?.remove() // remove the listener to prevent memory leaks
+        // delete the excess messages
+        fChat?.update(updates)
+                ?.addOnCompleteListener { Log.d(tag,"Deleted messages with timestamps ${updates.keys}") }
+                ?.addOnFailureListener { Log.d(tag,"Error updating document",it) }
     }
 }
