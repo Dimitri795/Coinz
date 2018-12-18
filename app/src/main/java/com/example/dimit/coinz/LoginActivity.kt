@@ -26,7 +26,7 @@ class LoginActivity : AppCompatActivity() {
         mAuth = FirebaseAuth.getInstance()      // get the current instance of the Firebase Authentication linked to the app
         db = FirebaseFirestore.getInstance()    // get the current instance of the Firebase cloud storage linked to the app
 
-        skipButton.setOnClickListener {signIn("admin@example.com", "adminexample")} // skip button for quick testing
+        //skipButton.setOnClickListener {signIn("admin@example.com", "adminexample")} skip button for quick testing
         // linked buttons to corresponding functions
         emailSignInButton.setOnClickListener { signIn(fieldEmail.text.toString(), fieldPassword.text.toString()) }
         emailCreateAccountButton.setOnClickListener { createAccount(fieldEmail.text.toString(), fieldPassword.text.toString()) }
@@ -42,6 +42,11 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun createAccount(email : String,password : String){
+        if (!validateForm()) {
+            // if the text for fieldEmail and fieldPassword is empty this throws and error and forces resubmission
+            Log.d(tag,"Attempting to create account with email and password...")
+            return
+        }
         // uses firebase function to create new user with email and password
         mAuth?.createUserWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
@@ -70,6 +75,11 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun signIn(email : String, password: String){
+        if (!validateForm()) {
+            // if the text for fieldEmail and fieldPassword is empty this throws and error and forces resubmission
+            Log.d(tag,"Attempting to sign in with email and password...")
+            return
+        }
         // uses firebase function to sign in using email and password
         mAuth?.signInWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
@@ -85,6 +95,29 @@ class LoginActivity : AppCompatActivity() {
                         updateUI(null)
                     }
                 }
+    }
+
+    private fun validateForm(): Boolean {
+        //checks to see if the email and password field have actual text entered.
+        var valid = true
+
+        val email = fieldEmail.text.toString()
+        if (email.isEmpty()) {
+            fieldEmail.error = "Required." // displays cute error circle to user for the field
+            valid = false
+        } else {
+            fieldEmail.error = null
+        }
+
+        val password = fieldPassword.text.toString()
+        if (password.isEmpty()) {
+            fieldPassword.error = "Required." // displays cute error circle to user for the field
+            valid = false
+        } else {
+            fieldPassword.error = null
+        }
+
+        return valid
     }
 
     private fun updateUI(user : FirebaseUser?){
