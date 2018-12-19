@@ -144,12 +144,16 @@ class ShopActivity : AppCompatActivity() {
         val items = settings.getString("AvailableItemList","")
         Log.d(tag, "[onStart] Restoring available item list is: $items")
         if(items != ""){ // their exists available items or all available items have been bought
-            items?.split(delimiters = *arrayOf("$"))?.forEach {id ->
-                avItemMap.forEach{
-                    // if the key in the list matches an item in the hashmap then add it to the list to be displayed
-                    // in the recycler
-                    if(it.key.id == id.toInt())
-                        itemList.add(it.key)
+            if(items == itemCount.toString()){
+                return
+            }else{
+                items?.split(delimiters = *arrayOf("$"))?.forEach {id ->
+                    avItemMap.forEach{
+                        // if the key in the list matches an item in the hashmap then add it to the list to be displayed
+                        // in the recycler
+                        if(it.key.id == id.toInt())
+                            itemList.add(it.key)
+                    }
                 }
             }
         } else{ // first time setting up shop so use original items. These have a value of true in avItemMap
@@ -171,6 +175,9 @@ class ShopActivity : AppCompatActivity() {
         var items = listOf<String>()
         itemList.toSet().forEach {// prevents duplicates
             items += it.id.toString()
+        }
+        if(items.isEmpty()){
+            items += itemCount.toString()
         }
         editor.putString("AvailableItemList",items.joinToString("$"))
         editor.apply()

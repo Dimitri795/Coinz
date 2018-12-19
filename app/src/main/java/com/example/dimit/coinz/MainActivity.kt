@@ -335,6 +335,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
         }
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // code provided by lecturer
         // Inflate the menu; this adds items to the action bar if it is present.
