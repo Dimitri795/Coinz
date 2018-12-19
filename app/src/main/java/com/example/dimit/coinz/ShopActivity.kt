@@ -144,7 +144,7 @@ class ShopActivity : AppCompatActivity() {
         val items = settings.getString("AvailableItemList","")
         Log.d(tag, "[onStart] Restoring available item list is: $items")
         if(items != ""){ // their exists available items or all available items have been bought
-            if(items == itemCount.toString()){
+            if(items == itemCount.toString()){ // all available items have been bought
                 return
             }else{
                 items?.split(delimiters = *arrayOf("$"))?.forEach {id ->
@@ -176,7 +176,7 @@ class ShopActivity : AppCompatActivity() {
         itemList.toSet().forEach {// prevents duplicates
             items += it.id.toString()
         }
-        if(items.isEmpty()){
+        if(items.isEmpty()){ // empty list has a specific string != empty string
             items += itemCount.toString()
         }
         editor.putString("AvailableItemList",items.joinToString("$"))
