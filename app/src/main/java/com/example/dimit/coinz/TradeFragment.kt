@@ -67,7 +67,7 @@ class TradeFragment : Fragment() {
         // create the view to hold the text fields and button
         val rootview = inflater.inflate(R.layout.trade_view, container, false)
 
-        rootview.trade_view.tradeButton.setOnClickListener {
+        rootview.trade_view.sendCoinButton.setOnClickListener {
             // A trade is being made, validate it and then pass it back to TradeActivity via the interface
             makeTrade(rootview.trade_view.fieldUsername.text.toString(),this) }
 
