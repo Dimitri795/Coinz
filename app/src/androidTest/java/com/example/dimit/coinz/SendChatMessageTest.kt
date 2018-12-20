@@ -44,15 +44,16 @@ class SendChatMessageTest {
 
     @Before
     fun init(){
+        // clear the chat history before testing
         db.collection("Chat").document("Message").delete()
         Log.d("@Before","Cleared Chat!")
     }
 
     @Test
     fun sendChatMessageTest() {
+        // Signs in the test admin, sends hello to the chat and asserts that the chat displays hello
+
         // Added a sleep statement to match the app's execution delay.
-        // The recommended way to handle such scenarios is to use Espresso idling resources:
-        // https://google.github.io/android-testing-support-library/docs/espresso/idling-resource/index.html
         Thread.sleep(7000)
 
         val appCompatEditText2 = onView(
@@ -145,6 +146,7 @@ class SendChatMessageTest {
     }
     @After
     fun signOut(){
+        // sign out after s tests can run in any order since they all start assuming the app is in loginActivity
         mAuth.signOut()
     }
 }
