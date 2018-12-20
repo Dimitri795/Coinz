@@ -5,20 +5,24 @@ import android.content.Context
 import android.support.test.espresso.Espresso.onView
 import android.support.test.espresso.action.ViewActions.*
 import android.support.test.espresso.assertion.ViewAssertions.matches
+import android.support.test.espresso.contrib.RecyclerViewActions.actionOnItemAtPosition
 import android.support.test.espresso.matcher.ViewMatchers.*
 import android.support.test.filters.LargeTest
 import android.support.test.rule.ActivityTestRule
 import android.support.test.rule.GrantPermissionRule
 import android.support.test.runner.AndroidJUnit4
+import android.support.v7.widget.RecyclerView.ViewHolder
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.TypeSafeMatcher
+import org.hamcrest.core.IsInstanceOf
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -27,7 +31,7 @@ import org.junit.runner.RunWith
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
-class DepositCoinTest {
+class BuyWalletFromShopTest {
 
     @Rule
     @JvmField
@@ -45,29 +49,24 @@ class DepositCoinTest {
 
     @Before
     fun init(){
-        // gets the test admin current gold value and clears his wallet on firebase and then adds a specific coin
-        // clears the shared preferences for used coins and deposited coin count so the test is reusable
+        // gets the test admin current gold value and adds 10,000 to it to afford the item buying
+        // clears the shared preferences for items so the default items are used
 
-        val coin = HashMap<String,Any>()
-        coin["b943-79e7-c088-a9cd-abf6-b0da"] = "placeholder"
         val docRef = db.collection("Users").document("ZyIKmgPEZ9QTnpcehtF0EL5upaH3")
         docRef.get().addOnSuccessListener {
             gold = (it.data!!["GoldCount"] as Long).toInt()
         }
-        val walletDoc = docRef.collection("Wallet").document("Personal Wallet")
-        walletDoc.delete()
-        walletDoc.set(coin).addOnSuccessListener { Log.d("@Before","Coin added to database") }
 
         val settings = mActivityTestRule.activity.getSharedPreferences("MyPrefsFileZyIKmgPEZ9QTnpcehtF0EL5upaH3", Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
         val editor = settings.edit()
-        editor.putString("UsedCoinList", "")
-        editor.putInt("DailyLimit", 0)
+        editor.putString("AvailableItemList","")
+        Log.d("@Before","Item list set to default")
         editor.apply()
     }
 
     @Test
-    fun depositCoinTest() {
+    fun buyWalletFromShopTest() {
         // Added a sleep statement to match the app's execution delay.
         Thread.sleep(7000)
 
@@ -107,50 +106,78 @@ class DepositCoinTest {
         Thread.sleep(7000)
 
         val floatingActionButton = onView(
-                allOf(withId(R.id.fab),
+                allOf(withId(R.id.fab2),
                         childAtPosition(
                                 childAtPosition(
                                         withId(android.R.id.content),
                                         0),
-                                3),
+                                4),
                         isDisplayed()))
         floatingActionButton.perform(click())
 
         // Added a sleep statement to match the app's execution delay.
         Thread.sleep(7000)
 
-        val textView = onView(
-                allOf(withId(R.id.balanceVal),
+        val recyclerView2 = onView(
+                allOf(withId(R.id.Shop),
                         childAtPosition(
-                                allOf(withId(R.id.balancefields),
+                                withId(R.id.frameLayout),
+                                0)))
+        recyclerView2.perform(actionOnItemAtPosition<ViewHolder>(1, click()))
+
+        // Added a sleep statement to match the app's execution delay.
+        Thread.sleep(7000)
+
+        val textView = onView(
+                allOf(withId(R.id.item_detail),
+                        childAtPosition(
+                                allOf(withId(R.id.item_detail_container),
                                         childAtPosition(
-                                                withId(R.id.app_bar),
+                                                IsInstanceOf.instanceOf(android.view.ViewGroup::class.java),
                                                 1)),
-                                1),
+                                0),
                         isDisplayed()))
-        textView.check(matches(withText(gold.toString())))
+        textView.check(matches(withText("Did you already deposit your 25 Coin limit only to find the coin of your dreams? " +
+                "Did trading it break your heart and made you wish there was some way to deposit just one more coin? " +
+                "\nWELL YOU\'RE IN LUCK FRIEND! With this new wallet with ONE extra pouch you can deposit a whopping 26 coins! " +
+                "\n \nPrice: 10000 gold")))
 
         val appCompatButton2 = onView(
-                allOf(withId(R.id.depositButton), withText("Deposit"),
+                allOf(withId(R.id.buyItemButton), withText("Buy"),
                         childAtPosition(
-                                allOf(withId(R.id.constraintLayout),
-                                        childAtPosition(
-                                                withId(R.id.card_view),
-                                                0)),
-                                3),
+                                childAtPosition(
+                                        withId(android.R.id.content),
+                                        0),
+                                2),
                         isDisplayed()))
         appCompatButton2.perform(click())
 
-        val textView2 = onView(
-                allOf(withId(R.id.balanceVal),
+        // Added a sleep statement to match the app's execution delay.
+        Thread.sleep(7000)
+
+        val recyclerView3 = onView(
+                allOf(withId(R.id.Shop),
                         childAtPosition(
-                                allOf(withId(R.id.balancefields),
+                                withId(R.id.frameLayout),
+                                0)))
+        recyclerView3.perform(actionOnItemAtPosition<ViewHolder>(1, click()))
+
+        // Added a sleep statement to match the app's execution delay.
+        Thread.sleep(7000)
+
+        val textView2 = onView(
+                allOf(withId(R.id.item_detail),
+                        childAtPosition(
+                                allOf(withId(R.id.item_detail_container),
                                         childAtPosition(
-                                                withId(R.id.app_bar),
+                                                IsInstanceOf.instanceOf(android.view.ViewGroup::class.java),
                                                 1)),
-                                1),
+                                0),
                         isDisplayed()))
-        textView2.check(matches(withText((gold+420).toString())))
+        textView2.check(matches(withText("Has the spirit of capitalism sunk its claws into you and 26 coins is no longer enough? " +
+                "Would you rather hoard your remaining coins than trade them to Barry for pocket change AGAIN? " +
+                "\nTHEN THIS IS THE WALLET FOR YOU! Now packing TWO extra pouches you can deposit 27 coins easily! " +
+                "\n \nPrice: 15000 gold")))
     }
 
     private fun childAtPosition(
@@ -172,6 +199,10 @@ class DepositCoinTest {
     @After
     fun signOut(){
         // Sign out test admin because tests expect the app to be in login activity and are run in random order
+        //resets gold to the value at the start of the test
         mAuth.signOut()
+        val goldcount = HashMap<String,Any>()
+        goldcount["GoldCount"] = gold
+        db.collection("Users").document("ZyIKmgPEZ9QTnpcehtF0EL5upaH3").set(goldcount, SetOptions.merge())
     }
 }
