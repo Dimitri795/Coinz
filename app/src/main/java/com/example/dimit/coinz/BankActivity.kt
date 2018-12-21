@@ -237,6 +237,7 @@ class BankActivity : AppCompatActivity() {
             // if dates are different then it's a new day so reset the limit and empty the used coins list
             BankActivity.used?.clear()
             BankActivity.dailyLimit = 0
+            Log.d(tag,"New day - new daily limit and used coin list")
         }
         if(tradeValid){
             // a trade was successful so add the traded coin to the used coin list

@@ -297,10 +297,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback,
                 // coin is within the distance from which it can be collected
                 val id = it.getStringProperty("id")
                 collected?.add(id) // add coin to local list of collected coins
-                val data = HashMap<String,String>()
+                val data = HashMap<String,Any>()
                 data[id] = it.toJson()
                 // add it to Firestore wallet as a map with the ID as the key and the full coin as the data
-                wallet?.document(personalwalletdoc)?.set(data as Map<String, Any>, SetOptions.merge())
+                wallet?.document(personalwalletdoc)?.set(data, SetOptions.merge())
                 // celebratory toast to user
                 makeToast("Collected a ${it.getStringProperty("currency")} ${it.getStringProperty("marker-symbol")} coin!")
                 map?.removeMarker(markers[id]!!) // remove the coin's associated marker from the map.

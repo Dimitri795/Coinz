@@ -20,18 +20,16 @@ import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.TypeSafeMatcher
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.math.roundToInt
+
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
-class DepositCoinTest {
-
+class DailyLimitReachedTest {
     @Rule
     @JvmField
     var mActivityTestRule = ActivityTestRule(MainActivity::class.java)
@@ -44,39 +42,36 @@ class DepositCoinTest {
 
     private var db = FirebaseFirestore.getInstance()
     private var mAuth = FirebaseAuth.getInstance()
-    private var gold = 0
-    private var coinVal = 0
+    private var size = 25
 
     @Before
     fun init(){
         // gets the test admin current gold value and clears his wallet on firebase and then adds a specific coin
-        // clears the shared preferences for used coins and deposited coin count so the test is reusable
+        // clears the shared preferences for used coins and sets daily deposit limit to max to test
 
         val settings = mActivityTestRule.activity.getSharedPreferences("MyPrefsFileZyIKmgPEZ9QTnpcehtF0EL5upaH3", Context.MODE_PRIVATE)
         // We need an Editor object to make preference changes.
-        val editor = settings.edit()
-        val json = settings.getString("DailyCoinData","")
-        val fc = FeatureCollection.fromJson(json!!).features()
+        val fc = FeatureCollection.fromJson(settings.getString("DailyCoinData","")!!).features()
         val feat = fc?.first()
+        val editor = settings.edit()
         val coin = HashMap<String,Any>()
         coin[feat?.getStringProperty("id")!!] = feat.toJson()
-        val featRate = JSONObject("${JSONObject(json).get("rates")}").getDouble(feat.getStringProperty("currency"))
-        coinVal = (featRate * feat.getStringProperty("value").toDouble()).roundToInt()
         val docRef = db.collection("Users").document("ZyIKmgPEZ9QTnpcehtF0EL5upaH3")
         docRef.get().addOnSuccessListener {
-            gold = (it.data!!["GoldCount"] as Long).toInt()
+            size = (it.data!!["WalletSize"] as Long).toInt()
+            editor.putInt("DailyLimit", size)
+            Log.d("@Before","Deposit Limit set to $size")
+            editor.apply()
         }
         val walletDoc = docRef.collection("Wallet").document("Personal Wallet")
         walletDoc.delete()
         walletDoc.set(coin).addOnSuccessListener { Log.d("@Before","Coin added to database") }
-
         editor.putString("UsedCoinList", "")
-        editor.putInt("DailyLimit", 0)
         editor.apply()
     }
 
     @Test
-    fun depositCoinTest() {
+    fun dailyLimitReachedTest() {
         // Added a sleep statement to match the app's execution delay.
         Thread.sleep(7000)
 
@@ -113,7 +108,7 @@ class DepositCoinTest {
                         isDisplayed()))
         appCompatButton.perform(click())
 
-        // Added a sleep statement to match the app's execution delay.
+        //Added a sleep statement to match the app's execution delay
         Thread.sleep(7000)
 
         val floatingActionButton = onView(
@@ -129,38 +124,10 @@ class DepositCoinTest {
         // Added a sleep statement to match the app's execution delay.
         Thread.sleep(7000)
 
-        val textView = onView(
-                allOf(withId(R.id.balanceVal),
-                        childAtPosition(
-                                allOf(withId(R.id.balancefields),
-                                        childAtPosition(
-                                                withId(R.id.app_bar),
-                                                1)),
-                                1),
+        val button = onView(
+                allOf(withId(R.id.spareChangeButton),
                         isDisplayed()))
-        textView.check(matches(withText(gold.toString())))
-
-        val appCompatButton2 = onView(
-                allOf(withId(R.id.depositButton), withText("Deposit"),
-                        childAtPosition(
-                                allOf(withId(R.id.constraintLayout),
-                                        childAtPosition(
-                                                withId(R.id.card_view),
-                                                0)),
-                                3),
-                        isDisplayed()))
-        appCompatButton2.perform(click())
-
-        val textView2 = onView(
-                allOf(withId(R.id.balanceVal),
-                        childAtPosition(
-                                allOf(withId(R.id.balancefields),
-                                        childAtPosition(
-                                                withId(R.id.app_bar),
-                                                1)),
-                                1),
-                        isDisplayed()))
-        textView2.check(matches(withText((gold+coinVal).toString())))
+        button.check(matches(isDisplayed()))
     }
 
     private fun childAtPosition(
@@ -183,5 +150,10 @@ class DepositCoinTest {
     fun signOut(){
         // Sign out test admin because tests expect the app to be in login activity and are run in random order
         mAuth.signOut()
+        val settings = mActivityTestRule.activity.getSharedPreferences("MyPrefsFileZyIKmgPEZ9QTnpcehtF0EL5upaH3", Context.MODE_PRIVATE)
+        // We need an Editor object to make preference changes.
+        val editor = settings.edit()
+        editor.putInt("DailyLimit", 0) // sets it back to 0 after testing
+        editor.apply()
     }
 }
